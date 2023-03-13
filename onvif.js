@@ -8,6 +8,7 @@ const bodyParser = require('body-parser');
 
 const DigestFetch = require("./digest-fetch");
 const getScreenshotUrl = require('./get_screenshot_url');
+const {spawn} = require("child_process");
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 let IP = process.env.IP
@@ -57,7 +58,11 @@ app.post('/add_camera', async function (req, res) {
             }
 
         }
-        res.send({"status": true, "message": "Image was found and saved successfully", "result": `images/${ip}/snapshot.jpg`});
+        res.send({
+            "status": true,
+            "message": "Image was found and saved successfully",
+            "result": `images/${ip}/snapshot.jpg`
+        });
         return
     } catch (e) {
         console.log(e, 'e')
@@ -66,7 +71,6 @@ app.post('/add_camera', async function (req, res) {
     }
     res.send({"status": true});
 });
-
 
 
 const screenshotUpdate = async (url, client, ip) => {
@@ -116,11 +120,11 @@ app.post('/get_stream_url', function (req, res) {
     }
 });
 
-app.listen(3456)
+app.listen(3457)
 
 
 const fetchCameras = async () => {
-    await pause(30000)
+    await pause(120000)
     let fetchedToken = await fetch(`http://${IP}:80/auth/jwt/create/`, {
         method: "POST",
         headers: {
@@ -151,13 +155,14 @@ const fetchCameras = async () => {
         }
     }
     runScreenshotMaker()
+    runVideoRecorder()
 }
 fetchCameras()
 
 const runScreenshotMaker = () => {
     for (const camera in cameras) {
-            screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
-        }
+        screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
+    }
 
     setInterval(() => {
         for (const camera in cameras) {
@@ -165,4 +170,52 @@ const runScreenshotMaker = () => {
         }
     }, 1000 * 60 * 15)
 }
+
+const runVideoRecorder = () => {
+    for (const camera in cameras) {
+        screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
+    }
+
+    setInterval(() => {
+        for (const camera in cameras) {
+            screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
+        }
+    }, 1000 * 60 * 15)
+
+
+
+    const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.167:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
+    const outputFilePath = 'file.mp4';
+
+    const ffmpegProcess = spawn('ffmpeg', [
+        '-rtsp_transport',
+        'tcp',
+        '-i',
+        rtspUrl,
+        '-codec',
+        'copy',
+        '-f',
+        'mp4',
+        outputFilePath
+    ]);
+
+    setTimeout(() => {
+        ffmpegProcess.kill()
+        console.log('kill')
+    }, 10000)
+
+    ffmpegProcess.on('error', (err) => {
+        console.error('FFmpeg spawn error:', err);
+    });
+
+    ffmpegProcess.on('exit', (code, signal) => {
+        if (code !== 0) {
+            console.error(`FFmpeg process exited with code ${code} and signal ${signal}`);
+        } else {
+            console.log(`FFmpeg process completed successfully and saved video to ${outputFilePath}`);
+        }
+    });
+}
+runVideoRecorder()
+
 
