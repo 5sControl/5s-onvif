@@ -9,6 +9,8 @@ const bodyParser = require('body-parser');
 const DigestFetch = require("./digest-fetch");
 const getScreenshotUrl = require('./get_screenshot_url');
 const {spawn} = require("child_process");
+const moment = require("moment");
+const path = require("path");
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 let IP = process.env.IP
@@ -16,7 +18,23 @@ if (!IP) {
     IP = '192.168.1.101'
 }
 let cameras = {}
-console.log(IP, 'ip')
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('database/video.sqlite3');
+db.run(`
+    CREATE TABLE IF NOT EXISTS videos
+    (
+        id
+        INTEGER
+        PRIMARY
+        KEY,
+        file_name
+        TEXT,
+        date_start
+        int,
+        date_end
+        int
+    )
+`);
 
 function arrayBufferToBuffer(arrayBuffer) {
     const buffer = Buffer.alloc(arrayBuffer.byteLength)
@@ -170,52 +188,37 @@ const runScreenshotMaker = () => {
         }
     }, 1000 * 60 * 15)
 }
-
-const runVideoRecorder = () => {
-    for (const camera in cameras) {
-        screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
-    }
-
-    setInterval(() => {
-        for (const camera in cameras) {
-            screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
-        }
-    }, 1000 * 60 * 15)
+const startTime = moment().startOf('minute');
+const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.167:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
 
 
+const runVideoRecorder = (rtspUrl, camera_ip) => {
+    const durationInMinutes = 1.5;
+    const startTime = moment().startOf('minute');
+    const endTime = moment(startTime).add(durationInMinutes, 'minutes');
+    const fileName = `${startTime.format('YYYY-MM-DD_HH-mm')}-${endTime.format('HH-mm')}-${camera_ip}.mp4`;
+    const filePath = `videos/${fileName}`
 
-    const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.167:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
-    const outputFilePath = 'file.mp4';
-
-    const ffmpegProcess = spawn('ffmpeg', [
-        '-rtsp_transport',
-        'tcp',
-        '-i',
-        rtspUrl,
-        '-codec',
-        'copy',
-        '-f',
-        'mp4',
-        outputFilePath
+    const ffmpeg = spawn('ffmpeg', [
+        '-i', rtspUrl,
+        '-c', 'copy',
+        '-t', `${durationInMinutes * 60}`,
+        filePath
     ]);
 
-    setTimeout(() => {
-        ffmpegProcess.kill()
-        console.log('kill')
-    }, 10000)
-
-    ffmpegProcess.on('error', (err) => {
-        console.error('FFmpeg spawn error:', err);
-    });
-
-    ffmpegProcess.on('exit', (code, signal) => {
-        if (code !== 0) {
-            console.error(`FFmpeg process exited with code ${code} and signal ${signal}`);
-        } else {
-            console.log(`FFmpeg process completed successfully and saved video to ${outputFilePath}`);
-        }
+    ffmpeg.on('exit', () => {
+        console.log(`Recorded video: ${fileName}`);
+        db.run(`INSERT INTO videos (file_name, date_start, date_end) VALUES (?, ?, ?)`, [filePath, startTime, endTime]);
+        runVideoRecorder(rtspUrl, camera_ip)
     });
 }
-runVideoRecorder()
 
-
+db.all('SELECT * FROM videos', (err, rows) => {
+  if (err) {
+    throw err;
+  }
+  rows.forEach(row => {
+    console.log(row.id, row.name, '123421321321');
+  });
+});
+runVideoRecorder(rtspUrl, '192.168.1.167')
