@@ -155,7 +155,7 @@ const fetchCameras = async () => {
         }
     }
     runScreenshotMaker()
-    runVideoRecorder()
+    // runVideoRecorder()
 }
 fetchCameras()
 
