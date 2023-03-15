@@ -138,7 +138,7 @@ app.post('/get_stream_url', function (req, res) {
     }
 });
 
-app.listen(3457)
+app.listen(3456)
 
 
 const fetchCameras = async () => {
