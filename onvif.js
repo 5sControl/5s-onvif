@@ -221,4 +221,4 @@ db.all('SELECT * FROM videos', (err, rows) => {
     console.log(row.id, row.name, '123421321321');
   });
 });
-runVideoRecorder(rtspUrl, '192.168.1.167')
+// runVideoRecorder(rtspUrl, '192.168.1.167')
