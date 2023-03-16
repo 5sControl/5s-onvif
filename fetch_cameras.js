@@ -10,6 +10,7 @@ function arrayBufferToBuffer(arrayBuffer) {
     for (let i = 0; i < buffer.length; ++i) buffer[i] = view[i]
     return buffer
 }
+
 const getScreenshotUrl = async (username, password, camera_ip) => {
     if (username && password && camera_ip) {
         return new Promise((resolve, reject) => {
@@ -24,15 +25,15 @@ const getScreenshotUrl = async (username, password, camera_ip) => {
                     resolve({"error": 'Auth error'})
                 } else {
                     this.getSnapshotUri({protocol: 'RTSP'}, function (err, stream) {
-                    if (err) {
-                        console.log(err, 'err')
-                        resolve({"error": err})
-                        return
-                    }
-                    const url_end = stream.uri.substring(7, stream.uri.length)
-                    const url = 'http://' + url_end;
-                    resolve({"url": url})
-                });
+                        if (err) {
+                            console.log(err, 'err')
+                            resolve({"error": err})
+                            return
+                        }
+                        const url_end = stream.uri.substring(7, stream.uri.length)
+                        const url = 'http://' + url_end;
+                        resolve({"url": url})
+                    });
                 }
             });
         });
@@ -93,20 +94,20 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
     const now = Date.now()
 
     ffmpeg.on('exit', async () => {
-        console.log(`Recorded video: ${fileName}`);
+
         if ((Date.now() - now) < 1000 * 60) {
             console.log(`Video not recorded, please check connection to ${camera_ip} camera`)
             await pause(30000)
             videoRecord(rtspUrl, camera_ip, db)
         } else {
-           db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
-                VALUES (?, ?, ?, ?)`, [filePath, startTime.valueOf(), endTime.valueOf(), camera_ip]);
-        videoRecord(rtspUrl, camera_ip, db)
+            console.log(`Recorded video: ${fileName}`);
+            db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
+                    VALUES (?, ?, ?, ?)`, [filePath, startTime.valueOf(), endTime.valueOf(), camera_ip]);
+            videoRecord(rtspUrl, camera_ip, db)
         }
 
     });
 }
-
 
 
 const fetchCameras = async (IP, cameras, db) => {
@@ -136,7 +137,11 @@ const fetchCameras = async (IP, cameras, db) => {
             const screenshot_url_data = await getScreenshotUrl(username, password, id)
             if (screenshot_url_data.url) {
                 const stream_url = `rtsp://${username}:${password}@${id}/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
-                cameras[camera.id] = {url: screenshot_url_data.url, client: new DigestFetch(username, password), stream_url}
+                cameras[camera.id] = {
+                    url: screenshot_url_data.url,
+                    client: new DigestFetch(username, password),
+                    stream_url
+                }
             }
         }
     }
