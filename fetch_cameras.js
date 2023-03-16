@@ -77,7 +77,7 @@ const runVideoRecorder = (cameras, db) => {
 }
 
 const videoRecord = (rtspUrl, camera_ip, db) => {
-    const durationInMinutes = 2;
+    const durationInMinutes = 10;
     const startTime = moment();
     const endTime = moment(startTime).add(durationInMinutes, 'minutes');
     const fileName = `${startTime.format('YYYY-MM-DD_HH-mm')}-${endTime.format('HH-mm')}-${camera_ip}.mp4`;
