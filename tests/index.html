@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Video Stream</title>
+</head>
+<body>
+<video id='videoPlayer' src="http://localhost:3456/stream?camera_ip=192.168.1.64" controls autoplay></video>
+<button id="button">Start video</button>
+<button id="button2">Start stream</button>
+</body>
+<script>
+    const btn = document.getElementById('button');
+    const btn2 = document.getElementById('button2');
+    const videoElement = document.getElementById('videoPlayer');
+
+    btn.addEventListener('click', () => {
+        console.log('click')
+        videoElement.src = "http://localhost:3456/video?time=2023-03-16 11:12:55.394&camera_ip=192.168.1.64"
+        videoElement.play();
+    });
+    btn2.addEventListener('click', () => {
+        console.log('click')
+        videoElement.src = "http://localhost:3456/stream?camera_ip=192.168.1.64"
+        videoElement.play();
+    });
+    videoElement.addEventListener('ended', () => {
+        console.log('end')
+        videoElement.src = "http://localhost:3456/stream?camera_ip=192.168.1.64"
+        videoElement.play();
+    });
+</script>
+</html>
