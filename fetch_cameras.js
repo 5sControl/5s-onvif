@@ -77,7 +77,7 @@ const runVideoRecorder = (cameras, db) => {
 }
 
 const videoRecord = (rtspUrl, camera_ip, db) => {
-    const durationInMinutes = 10;
+    const durationInMinutes = 2;
     const startTime = moment();
     const endTime = moment(startTime).add(durationInMinutes, 'minutes');
     const fileName = `${startTime.format('YYYY-MM-DD_HH-mm')}-${endTime.format('HH-mm')}-${camera_ip}.mp4`;
@@ -94,7 +94,7 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
 
     ffmpeg.on('exit', () => {
         console.log(`Recorded video: ${fileName}`);
-        if ((Date.now() - now) < 1000 * 60 * 5) {
+        if ((Date.now() - now) < 1000 * 60) {
             console.log('Video not recorded')
         } else {
            db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
