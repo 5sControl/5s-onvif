@@ -7,7 +7,7 @@ const
 const bodyParser = require('body-parser');
 
 const DigestFetch = require("./digest-fetch");
-const getScreenshotUrl = require('./get_screenshot_url');
+const {getScreenshotUrl, pause, fetchCameras, screenshotUpdate} = require('./fetch_cameras');
 const {spawn} = require("child_process");
 const moment = require("moment");
 const path = require("path");
@@ -32,20 +32,11 @@ db.run(`
         date_start
         int,
         date_end
-        int
+        int,
+        camera_ip
+        TEXT
     )
 `);
-
-function arrayBufferToBuffer(arrayBuffer) {
-    const buffer = Buffer.alloc(arrayBuffer.byteLength)
-    const view = new Uint8Array(arrayBuffer)
-    for (let i = 0; i < buffer.length; ++i) buffer[i] = view[i]
-    return buffer
-}
-
-async function pause(milliseconds) {
-    return new Promise(resolve => setTimeout(resolve, milliseconds));
-}
 
 
 app.post('/add_camera', async function (req, res) {
@@ -90,24 +81,6 @@ app.post('/add_camera', async function (req, res) {
     res.send({"status": true});
 });
 
-
-const screenshotUpdate = async (url, client, ip) => {
-    try {
-        const response = await client.fetch(url)
-        const arrayBuffer = await response.arrayBuffer()
-        const b = arrayBufferToBuffer(arrayBuffer)
-        fs.writeFile(`images/${ip}/snapshot.jpg`, b, err => {
-            if (err) console.log(err)
-        })
-        return {success: true}
-    } catch (e) {
-        console.log(e, 'e')
-        return {success: false, error: "Error"}
-    }
-
-
-}
-
 app.post('/get_stream_url', function (req, res) {
     try {
         const {username, password, camera_ip} = req.body
@@ -138,87 +111,106 @@ app.post('/get_stream_url', function (req, res) {
     }
 });
 
-app.listen(3456)
 
-
-const fetchCameras = async () => {
-    await pause(120000)
-    let fetchedToken = await fetch(`http://${IP}:80/auth/jwt/create/`, {
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8'
-        },
-        body: JSON.stringify({
-            "username": "admin",
-            "password": "admin"
-        })
-    })
-    fetchedToken = await fetchedToken.json()
-    console.log('fetch cameras')
-    let fetchedCameras = await fetch(`http://${IP}:80/api/cameras/`, {
-        method: "GET",
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8',
-            'Authorization': 'JWT ' + fetchedToken.access
-        }
-    })
-    fetchedCameras = await fetchedCameras.json()
-    for (const camera of fetchedCameras) {
-        const {username, password, id} = camera
-        if (!cameras[id]) {
-            const screenshot_url_data = await getScreenshotUrl(username, password, id)
-            if (screenshot_url_data.url) {
-                cameras[camera.id] = {url: screenshot_url_data.url, client: new DigestFetch(username, password)}
-            }
-        }
-    }
-    runScreenshotMaker()
-    // runVideoRecorder()
-}
-fetchCameras()
-
-const runScreenshotMaker = () => {
-    for (const camera in cameras) {
-        screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
+app.get('/stream', (req, res) => {
+    console.log(req.body, req.query)
+    let {camera_ip} = req.query;
+    if (!camera_ip) {
+        res.status(400).send("Requires camera_ip field");
+        return
     }
 
-    setInterval(() => {
-        for (const camera in cameras) {
-            screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
-        }
-    }, 1000 * 60 * 15)
-}
-const startTime = moment().startOf('minute');
-const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.167:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
+    res.writeHead(200, {
+        'Content-Type': 'video/mp4',
+        'Transfer-Encoding': 'chunked'
+    });
 
-
-const runVideoRecorder = (rtspUrl, camera_ip) => {
-    const durationInMinutes = 1.5;
-    const startTime = moment().startOf('minute');
-    const endTime = moment(startTime).add(durationInMinutes, 'minutes');
-    const fileName = `${startTime.format('YYYY-MM-DD_HH-mm')}-${endTime.format('HH-mm')}-${camera_ip}.mp4`;
-    const filePath = `videos/${fileName}`
-
-    const ffmpeg = spawn('ffmpeg', [
-        '-i', rtspUrl,
-        '-c', 'copy',
-        '-t', `${durationInMinutes * 60}`,
-        filePath
+    const ffmpegProcess = spawn('ffmpeg', [
+        '-i',
+        `rtsp://admin:just4Taqtile@${camera_ip}:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`,
+        '-c:v',
+        'copy',
+        '-movflags',
+        'frag_keyframe+empty_moov',
+        '-an',
+        '-f',
+        'mp4',
+        '-'
     ]);
 
-    ffmpeg.on('exit', () => {
-        console.log(`Recorded video: ${fileName}`);
-        db.run(`INSERT INTO videos (file_name, date_start, date_end) VALUES (?, ?, ?)`, [filePath, startTime, endTime]);
-        runVideoRecorder(rtspUrl, camera_ip)
+    ffmpegProcess.stdout.pipe(res);
+
+    req.on('close', () => {
+        console.log('KILL')
+        ffmpegProcess.kill();
+    });
+});
+
+const getFilePath = async (time, camera_ip) => {
+    const date = new Date(time).valueOf();
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT *
+                FROM videos
+                where date_start < ${date}
+                  and date_end > ${date} and camera_ip = '${camera_ip}'`, (err, rows) => {
+            if (err) {
+                throw err;
+            }
+            if (rows[0]) {
+                resolve(rows[0].file_name)
+            } else {
+                reject('Row not found')
+            }
+
+        });
     });
 }
 
-db.all('SELECT * FROM videos', (err, rows) => {
-  if (err) {
-    throw err;
-  }
-  rows.forEach(row => {
-    console.log(row.id, row.name, '123421321321');
-  });
+app.get("/video", async function (req, res) {
+    // Ensure there is a range given for the video
+    const range = req.headers.range;
+
+    let {time, camera_ip} = req.query;
+    if (!range) {
+        res.status(400).send("Requires Range header");
+        return
+    }
+
+    if (!time || !camera_ip) {
+        res.status(400).send("Requires time field");
+        return
+    }
+
+    const videoPath = await getFilePath(time, camera_ip)
+
+    const videoSize = fs.statSync(videoPath).size;
+
+    const CHUNK_SIZE = 10 ** 6; // 1MB
+    const start = Number(range.replace(/\D/g, ""));
+    const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
+
+    // Create headers
+    const contentLength = end - start + 1;
+    const headers = {
+        "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": contentLength,
+        "Content-Type": "video/mp4",
+    };
+
+    // HTTP Status 206 for Partial Content
+    res.writeHead(206, headers);
+
+    // create video read stream for this particular chunk
+    const videoStream = fs.createReadStream(videoPath, {start, end});
+
+    videoStream.pipe(res);
 });
-// runVideoRecorder(rtspUrl, '192.168.1.167')
+
+app.listen(3456)
+fetchCameras(IP, cameras)
+
+
+const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
+
+
