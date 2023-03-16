@@ -92,10 +92,12 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
 
     const now = Date.now()
 
-    ffmpeg.on('exit', () => {
+    ffmpeg.on('exit', async () => {
         console.log(`Recorded video: ${fileName}`);
         if ((Date.now() - now) < 1000 * 60) {
-            console.log('Video not recorded')
+            console.log(`Video not recorded, please check connection to ${camera_ip} camera`)
+            await pause(30000)
+            videoRecord(rtspUrl, camera_ip, db)
         } else {
            db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
                 VALUES (?, ?, ?, ?)`, [filePath, startTime.valueOf(), endTime.valueOf(), camera_ip]);
