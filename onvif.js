@@ -2,15 +2,12 @@ const express = require('express');
 const app = express();
 const fs = require('fs')
 const
-    http = require('http'),
     Cam = require('onvif').Cam;
 const bodyParser = require('body-parser');
 
 const DigestFetch = require("./digest-fetch");
 const {getScreenshotUrl, pause, fetchCameras, screenshotUpdate} = require('./fetch_cameras');
 const {spawn} = require("child_process");
-const moment = require("moment");
-const path = require("path");
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 let IP = process.env.IP
