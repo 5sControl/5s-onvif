@@ -70,13 +70,13 @@ const runScreenshotMaker = (cameras) => {
     }, 1000 * 60 * 15)
 }
 
-const runVideoRecorder = (cameras) => {
+const runVideoRecorder = (cameras, db) => {
     for (const camera in cameras) {
-        videoRecord(cameras[camera].stream_url, camera)
+        videoRecord(cameras[camera].stream_url, camera, db)
     }
 }
 
-const videoRecord = (rtspUrl, camera_ip) => {
+const videoRecord = (rtspUrl, camera_ip, db) => {
     const durationInMinutes = 10;
     const startTime = moment();
     const endTime = moment(startTime).add(durationInMinutes, 'minutes');
@@ -94,13 +94,13 @@ const videoRecord = (rtspUrl, camera_ip) => {
         console.log(`Recorded video: ${fileName}`);
         db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
                 VALUES (?, ?, ?, ?)`, [filePath, startTime.valueOf(), endTime.valueOf(), camera_ip]);
-        videoRecord(rtspUrl, camera_ip)
+        videoRecord(rtspUrl, camera_ip, db)
     });
 }
 
 
 
-const fetchCameras = async (IP, cameras) => {
+const fetchCameras = async (IP, cameras, db) => {
     await pause(120000)
     let fetchedToken = await fetch(`http://${IP}:80/auth/jwt/create/`, {
         method: "POST",
@@ -132,7 +132,7 @@ const fetchCameras = async (IP, cameras) => {
         }
     }
     runScreenshotMaker(cameras)
-    runVideoRecorder(cameras)
+    runVideoRecorder(cameras, db)
 }
 
 module.exports = {getScreenshotUrl, pause, fetchCameras, screenshotUpdate}
