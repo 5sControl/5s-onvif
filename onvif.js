@@ -12,7 +12,7 @@ app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 let IP = process.env.IP
 if (!IP) {
-    IP = '192.168.1.101'
+    IP = '192.168.1.150'
 }
 let cameras = {}
 const sqlite3 = require('sqlite3').verbose();
@@ -149,7 +149,8 @@ const getFilePath = async (time, camera_ip) => {
         db.all(`SELECT *
                 FROM videos
                 where date_start < ${date}
-                  and date_end > ${date} and camera_ip = '${camera_ip}'`, (err, rows) => {
+                  and date_end > ${date}
+                  and camera_ip = '${camera_ip}'`, (err, rows) => {
             if (err) {
                 throw err;
             }
@@ -177,7 +178,6 @@ app.get("/video", async function (req, res) {
         res.status(400).send("Requires time field");
         return
     }
-
 
 
     let videoPath;
@@ -211,8 +211,89 @@ app.get("/video", async function (req, res) {
     videoStream.pipe(res);
 });
 
+app.get("/t1", async function (req, res) {
+
+// RTSP stream URL
+    const rtspUrl = 'rtsp://192.168.1.150:8554/stream';
+
+// Output file path
+    const outputFile = 'snapshot.jpg';
+    const now = Date.now()
+// Spawn an FFmpeg process to capture a single frame from the RTSP stream
+    const ffmpeg = spawn('ffmpeg', [
+        '-i', rtspUrl,
+        '-vframes', '1',
+        '-q:v', '2',
+        '-y',
+        outputFile
+    ]);
+
+// Listen for output and error events from the FFmpeg process
+    ffmpeg.stdout.on('data', (data) => {
+        console.log(`FFmpeg stdout:\n${data}`);
+    });
+
+    ffmpeg.stderr.on('data', (data) => {
+        console.error(`FFmpeg stderr:\n${data}`);
+    });
+
+// Listen for the exit event from the FFmpeg process
+    ffmpeg.on('exit', (code) => {
+        if (code === 0) {
+            console.log(Date.now() - now)
+            console.log(`Snapshot saved to ${outputFile}`);
+        } else {
+            console.error(`FFmpeg process exited with code ${code}`);
+        }
+    });
+
+});
+
+app.get("/ss", async function (req, res) {
+
+// RTSP stream URL
+    const rtspUrl = 'rtsp://192.168.1.150:8554/stream';
+
+// Output file path
+    const outputFile = 'snapshot.jpg';
+    const now = Date.now()
+// Spawn an FFmpeg process to capture a single frame from the RTSP stream
+    const ffmpeg = spawn('ffmpeg', [
+    '-stream_loop',
+    `-1`,
+    '-re',
+    '-i',
+    'videos/test.mp4',
+    '-c',
+    'copy',
+    '-f',
+    'rtsp',
+    `rtsp://${IP}:8554/stream`
+]);
+// Listen for output and error events from the FFmpeg process
+    ffmpeg.stdout.on('data', (data) => {
+        console.log(`FFmpeg stdout:\n${data}`);
+    });
+
+    ffmpeg.stderr.on('data', (data) => {
+        console.error(`FFmpeg stderr:\n${data}`);
+    });
+
+// Listen for the exit event from the FFmpeg process
+    ffmpeg.on('exit', (code) => {
+        if (code === 0) {
+            console.log(Date.now() - now)
+            console.log(`Snapshot saved to ${outputFile}`);
+        } else {
+            console.error(`FFmpeg process exited with code ${code}`);
+        }
+    });
+
+});
+
 app.listen(3456)
 fetchCameras(IP, cameras, db)
+
 
 
 const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
