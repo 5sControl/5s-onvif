@@ -178,7 +178,14 @@ app.get("/video", async function (req, res) {
         return
     }
 
-    const videoPath = await getFilePath(time, camera_ip)
+
+
+    let videoPath;
+    if (time === 'test') {
+        videoPath = 'images/192.168.1.160/2023-03-10/14-20.mp4'
+    } else {
+        videoPath = await getFilePath(time, camera_ip)
+    }
 
     const videoSize = fs.statSync(videoPath).size;
 
