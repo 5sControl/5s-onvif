@@ -15,11 +15,11 @@ if (!IP) {
     IP = '192.168.1.150'
 }
 if (!fs.existsSync('images/' + IP)) {
-        fs.mkdirSync('images/' + IP);
-        console.log(`${'images/' + IP} created successfully!`);
-    } else {
-        console.log(`${'images/' + IP} already exists!`);
-    }
+    fs.mkdirSync('images/' + IP);
+    console.log(`${'images/' + IP} created successfully!`);
+} else {
+    console.log(`${'images/' + IP} already exists!`);
+}
 let cameras = {}
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('database/video.sqlite3');
@@ -43,7 +43,15 @@ db.run(`
 
 
 app.post('/add_camera', async function (req, res) {
-    const {ip, username, password} = req.body
+    const {ip, username, password} = req.body;
+    if (ip.indexOf(IP) !== -1) {
+        res.send({
+            "status": true,
+            "message": "Image was found and saved successfully",
+            "result": `images/${ip}/snapshot.jpg`
+        });
+        return
+    }
     if (!ip || !username || !password) {
         res.send({"status": false, "message": "Required fields not found", "result": false});
         return
@@ -237,12 +245,12 @@ setTimeout(() => {
     console.log(123)
     stream.on('data', function (data) {
         if (!screenshot) {
-            fs.writeFile(`images/${IP}/snapshot.jpg`, data, function(err) {
+            fs.writeFile(`images/${IP}/snapshot.jpg`, data, function (err) {
                 console.log(err, 'err')
                 screenshot = data;
             })
         } else {
-           screenshot = data;
+            screenshot = data;
         }
 
     });
