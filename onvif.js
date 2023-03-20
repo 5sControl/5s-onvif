@@ -14,6 +14,12 @@ let IP = process.env.IP
 if (!IP) {
     IP = '192.168.1.150'
 }
+if (!fs.existsSync('images/' + IP)) {
+        fs.mkdirSync('images/' + IP);
+        console.log(`${'images/' + IP} created successfully!`);
+    } else {
+        console.log(`${'images/' + IP} already exists!`);
+    }
 let cameras = {}
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('database/video.sqlite3');
@@ -228,11 +234,17 @@ const streamEmulate = spawn('ffmpeg', [
 let screenshot = null
 setTimeout(() => {
     const stream = new rtsp.FFMpeg({input: uri, rate: 2});
+    console.log(123)
     stream.on('data', function (data) {
         if (!screenshot) {
-            fs.writeFile(`images/${IP}/snapshot.jpg`, data)
+            fs.writeFile(`images/${IP}/snapshot.jpg`, data, function(err) {
+                console.log(err, 'err')
+                screenshot = data;
+            })
+        } else {
+           screenshot = data;
         }
-        screenshot = data;
+
     });
 }, 5000)
 
