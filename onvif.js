@@ -229,7 +229,9 @@ let screenshot = null
 setTimeout(() => {
     const stream = new rtsp.FFMpeg({input: uri, rate: 2});
     stream.on('data', function (data) {
-        console.log(data, '123')
+        if (!screenshot) {
+            fs.writeFile(`images/${IP}/snapshot.jpg`, data)
+        }
         screenshot = data;
     });
 }, 5000)
