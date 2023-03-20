@@ -4,10 +4,10 @@ const fs = require('fs')
 const
     Cam = require('onvif').Cam;
 const bodyParser = require('body-parser');
-
 const DigestFetch = require("./digest-fetch");
 const {getScreenshotUrl, pause, fetchCameras, screenshotUpdate} = require('./fetch_cameras');
 const {spawn} = require("child_process");
+const rtsp = require("rtsp-ffmpeg");
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 let IP = process.env.IP
@@ -211,56 +211,11 @@ app.get("/video", async function (req, res) {
     videoStream.pipe(res);
 });
 
-app.get("/t1", async function (req, res) {
-
-// RTSP stream URL
-    const rtspUrl = 'rtsp://192.168.1.150:8554/stream';
-
-// Output file path
-    const outputFile = 'snapshot.jpg';
-    const now = Date.now()
-// Spawn an FFmpeg process to capture a single frame from the RTSP stream
-    const ffmpeg = spawn('ffmpeg', [
-        '-i', rtspUrl,
-        '-vframes', '1',
-        '-q:v', '2',
-        '-y',
-        outputFile
-    ]);
-
-// Listen for output and error events from the FFmpeg process
-    ffmpeg.stdout.on('data', (data) => {
-        console.log(`FFmpeg stdout:\n${data}`);
-    });
-
-    ffmpeg.stderr.on('data', (data) => {
-        console.error(`FFmpeg stderr:\n${data}`);
-    });
-
-// Listen for the exit event from the FFmpeg process
-    ffmpeg.on('exit', (code) => {
-        if (code === 0) {
-            console.log(Date.now() - now)
-            console.log(`Snapshot saved to ${outputFile}`);
-        } else {
-            console.error(`FFmpeg process exited with code ${code}`);
-        }
-    });
-
-});
-
-app.get("/ss", async function (req, res) {
-
-// RTSP stream URL
-    const rtspUrl = 'rtsp://192.168.1.150:8554/stream';
-
-// Output file path
-    const outputFile = 'snapshot.jpg';
-    const now = Date.now()
-// Spawn an FFmpeg process to capture a single frame from the RTSP stream
-    const ffmpeg = spawn('ffmpeg', [
+const uri = `rtsp://${IP}:8554/mystream`;
+console.log(uri, 'uri')
+const streamEmulate = spawn('ffmpeg', [
     '-stream_loop',
-    `-1`,
+    '-1',
     '-re',
     '-i',
     'videos/test.mp4',
@@ -268,32 +223,23 @@ app.get("/ss", async function (req, res) {
     'copy',
     '-f',
     'rtsp',
-    `rtsp://${IP}:8554/stream`
+    uri
 ]);
-// Listen for output and error events from the FFmpeg process
-    ffmpeg.stdout.on('data', (data) => {
-        console.log(`FFmpeg stdout:\n${data}`);
+let screenshot = null
+setTimeout(() => {
+    const stream = new rtsp.FFMpeg({input: uri, rate: 2});
+    stream.on('data', function (data) {
+        console.log(data, '123')
+        screenshot = data;
     });
+}, 5000)
 
-    ffmpeg.stderr.on('data', (data) => {
-        console.error(`FFmpeg stderr:\n${data}`);
-    });
-
-// Listen for the exit event from the FFmpeg process
-    ffmpeg.on('exit', (code) => {
-        if (code === 0) {
-            console.log(Date.now() - now)
-            console.log(`Snapshot saved to ${outputFile}`);
-        } else {
-            console.error(`FFmpeg process exited with code ${code}`);
-        }
-    });
-
+app.use('/onvif-http/snapshot', async function (req, res) {
+    res.send(screenshot);
 });
 
 app.listen(3456)
 fetchCameras(IP, cameras, db)
-
 
 
 const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
