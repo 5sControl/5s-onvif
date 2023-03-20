@@ -146,7 +146,7 @@ const fetchCameras = async (IP, cameras, db) => {
         }
     }
     runScreenshotMaker(cameras)
-    // runVideoRecorder(cameras, db)
+    runVideoRecorder(cameras, db)
 }
 
 module.exports = {getScreenshotUrl, pause, fetchCameras, screenshotUpdate}
