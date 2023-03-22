@@ -227,18 +227,18 @@ app.get("/video", async function (req, res) {
 
 const uri = `rtsp://${IP}:8554/mystream`;
 console.log(uri, 'uri')
-const streamEmulate = spawn('ffmpeg', [
-    '-stream_loop',
-    '-1',
-    '-re',
-    '-i',
-    'videos/test.mp4',
-    '-c',
-    'copy',
-    '-f',
-    'rtsp',
-    uri
-]);
+// const streamEmulate = spawn('ffmpeg', [
+//     '-stream_loop',
+//     '-1',
+//     '-re',
+//     '-i',
+//     'videos/test.mp4',
+//     '-c',
+//     'copy',
+//     '-f',
+//     'rtsp',
+//     uri
+// ]);
 let screenshot = null
 setTimeout(() => {
     const stream = new rtsp.FFMpeg({input: uri, rate: 2});
