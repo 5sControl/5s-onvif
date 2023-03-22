@@ -239,6 +239,7 @@ console.log(uri, 'uri')
 //     'rtsp',
 //     uri
 // ]);
+// 'ffmpeg -stream_loop -1 -re -i videos/test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream'
 let screenshot = null
 setTimeout(() => {
     const stream = new rtsp.FFMpeg({input: uri, rate: 2});
@@ -254,7 +255,7 @@ setTimeout(() => {
         }
 
     });
-}, 5000)
+}, 15000)
 
 app.use('/onvif-http/snapshot', async function (req, res) {
     res.send(screenshot);
