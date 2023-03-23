@@ -256,7 +256,7 @@ setTimeout(() => {
             }
         });
     } catch (e) {
-        console.log(e, 'e')
+        console.log(e, 'setTimeout start error')
     }
 }, 15000)
 

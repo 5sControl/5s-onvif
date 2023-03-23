@@ -54,7 +54,7 @@ const screenshotUpdate = async (url, client, ip) => {
         })
         return {success: true}
     } catch (e) {
-        console.log(e, 'e')
+        console.log(e, 'screenshotUpdate error')
         return {success: false, error: "Error"}
     }
 }
@@ -78,75 +78,84 @@ const runVideoRecorder = (cameras, db) => {
 }
 
 const videoRecord = (rtspUrl, camera_ip, db) => {
-    const durationInMinutes = 2;
-    const startTime = moment();
-    const endTime = moment(startTime).add(durationInMinutes, 'minutes');
-    const fileName = `${startTime.format('YYYY-MM-DD_HH-mm')}-${endTime.format('HH-mm')}-${camera_ip}.mp4`;
-    const filePath = `videos/${fileName}`
+    try {
+        const durationInMinutes = 2;
+        const startTime = moment();
+        const endTime = moment(startTime).add(durationInMinutes, 'minutes');
+        const fileName = `${startTime.format('YYYY-MM-DD_HH-mm')}-${endTime.format('HH-mm')}-${camera_ip}.mp4`;
+        const filePath = `videos/${fileName}`
 
-    const ffmpeg = spawn('ffmpeg', [
-        '-i', rtspUrl,
-        '-c', 'copy',
-        '-t', `${durationInMinutes * 60}`,
-        filePath
-    ]);
+        const ffmpeg = spawn('ffmpeg', [
+            '-i', rtspUrl,
+            '-c', 'copy',
+            '-t', `${durationInMinutes * 60}`,
+            filePath
+        ]);
 
-    const now = Date.now()
+        const now = Date.now()
 
-    ffmpeg.on('exit', async () => {
+        ffmpeg.on('exit', async () => {
 
-        if ((Date.now() - now) < 1000 * 60) {
-            console.log(`Video not recorded, please check connection to ${camera_ip} camera`)
-            await pause(30000)
-            videoRecord(rtspUrl, camera_ip, db)
-        } else {
-            console.log(`Recorded video: ${fileName}`);
-            db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
-                    VALUES (?, ?, ?, ?)`, [filePath, startTime.valueOf(), endTime.valueOf(), camera_ip]);
-            videoRecord(rtspUrl, camera_ip, db)
-        }
+            if ((Date.now() - now) < 1000 * 60) {
+                console.log(`Video not recorded, please check connection to ${camera_ip} camera`)
+                await pause(30000)
+                videoRecord(rtspUrl, camera_ip, db)
+            } else {
+                console.log(`Recorded video: ${fileName}`);
+                db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
+                        VALUES (?, ?, ?, ?)`, [filePath, startTime.valueOf(), endTime.valueOf(), camera_ip]);
+                videoRecord(rtspUrl, camera_ip, db)
+            }
 
-    });
+        });
+    } catch (e) {
+        console.log(e, 'videoRecord error')
+    }
+
 }
 
 
 const fetchCameras = async (IP, cameras, db) => {
-    await pause(120000)
-    let fetchedToken = await fetch(`http://${IP}:80/auth/jwt/create/`, {
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8'
-        },
-        body: JSON.stringify({
-            "username": "admin",
-            "password": "admin"
+    try {
+        await pause(120000)
+        let fetchedToken = await fetch(`http://${IP}:80/auth/jwt/create/`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify({
+                "username": "admin",
+                "password": "admin"
+            })
         })
-    })
-    fetchedToken = await fetchedToken.json()
-    let fetchedCameras = await fetch(`http://${IP}:80/api/cameras/`, {
-        method: "GET",
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8',
-            'Authorization': 'JWT ' + fetchedToken.access
-        }
-    })
-    fetchedCameras = await fetchedCameras.json()
-    for (const camera of fetchedCameras) {
-        const {username, password, id} = camera
-        if (!cameras[id]) {
-            const screenshot_url_data = await getScreenshotUrl(username, password, id)
-            if (screenshot_url_data.url) {
-                const stream_url = `rtsp://${username}:${password}@${id}/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
-                cameras[camera.id] = {
-                    url: screenshot_url_data.url,
-                    client: new DigestFetch(username, password),
-                    stream_url
+        fetchedToken = await fetchedToken.json()
+        let fetchedCameras = await fetch(`http://${IP}:80/api/cameras/`, {
+            method: "GET",
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8',
+                'Authorization': 'JWT ' + fetchedToken.access
+            }
+        })
+        fetchedCameras = await fetchedCameras.json()
+        for (const camera of fetchedCameras) {
+            const {username, password, id} = camera
+            if (!cameras[id]) {
+                const screenshot_url_data = await getScreenshotUrl(username, password, id)
+                if (screenshot_url_data.url) {
+                    const stream_url = `rtsp://${username}:${password}@${id}/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
+                    cameras[camera.id] = {
+                        url: screenshot_url_data.url,
+                        client: new DigestFetch(username, password),
+                        stream_url
+                    }
                 }
             }
         }
+        runScreenshotMaker(cameras)
+        runVideoRecorder(cameras, db)
+    } catch (e) {
+        console.log(e, 'fetchCameras error')
     }
-    runScreenshotMaker(cameras)
-    runVideoRecorder(cameras, db)
 }
 
 module.exports = {getScreenshotUrl, pause, fetchCameras, screenshotUpdate}
