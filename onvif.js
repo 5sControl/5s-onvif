@@ -242,19 +242,22 @@ console.log(uri, 'uri')
 // 'ffmpeg -stream_loop -1 -re -i videos/test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream'
 let screenshot = null
 setTimeout(() => {
-    const stream = new rtsp.FFMpeg({input: uri, rate: 2});
-    console.log(123)
-    stream.on('data', function (data) {
-        if (!screenshot) {
-            fs.writeFile(`images/${IP}/snapshot.jpg`, data, function (err) {
-                console.log(err, 'err')
+    try {
+        const stream = new rtsp.FFMpeg({input: uri, rate: 2});
+        console.log(123)
+        stream.on('data', function (data) {
+            if (!screenshot) {
+                fs.writeFile(`images/${IP}/snapshot.jpg`, data, function (err) {
+                    console.log(err, 'err')
+                    screenshot = data;
+                })
+            } else {
                 screenshot = data;
-            })
-        } else {
-            screenshot = data;
-        }
-
-    });
+            }
+        });
+    } catch (e) {
+        console.log(e, 'e')
+    }
 }, 15000)
 
 app.use('/onvif-http/snapshot', async function (req, res) {
