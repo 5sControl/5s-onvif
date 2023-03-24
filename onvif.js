@@ -244,7 +244,7 @@ let screenshot = null
 setTimeout(() => {
     try {
         const stream = new rtsp.FFMpeg({input: uri, rate: 2});
-        console.log(123)
+        console.log('stream of ' , IP)
         stream.on('data', function (data) {
             if (!screenshot) {
                 console.log(`save screenshot from ${IP}`)
