@@ -247,6 +247,7 @@ setTimeout(() => {
         console.log(123)
         stream.on('data', function (data) {
             if (!screenshot) {
+                console.log(`save screenshot from ${IP}`)
                 fs.writeFile(`images/${IP}/snapshot.jpg`, data, function (err) {
                     console.log(err, 'err')
                     screenshot = data;
