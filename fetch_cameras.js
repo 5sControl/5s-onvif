@@ -83,7 +83,7 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
         const startTime = moment();
         const endTime = moment(startTime).add(durationInMinutes, 'minutes');
         const fileName = `${startTime.format('YYYY-MM-DD_HH-mm')}-${endTime.format('HH-mm')}-${camera_ip}.mp4`;
-        const filePath = `videos/${fileName}`
+        const filePath = `videos/${camera_ip}/${fileName}`
 
         const ffmpeg = spawn('ffmpeg', [
             '-i', rtspUrl,

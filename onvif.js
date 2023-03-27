@@ -169,7 +169,7 @@ const getFilePath = async (time, camera_ip) => {
                 throw err;
             }
             if (rows[0]) {
-                resolve(rows[0].file_name)
+                resolve(`videos/${camera_ip}/${rows[0].file_name}`)
             } else {
                 reject('Row not found')
             }
