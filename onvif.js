@@ -224,7 +224,6 @@ app.get("/video", async function (req, res) {
             "Content-Length": contentLength,
             "Content-Type": "video/mp4",
         };
-
         // HTTP Status 206 for Partial Content s
         res.writeHead(206, headers);
 
