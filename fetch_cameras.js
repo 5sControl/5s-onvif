@@ -84,6 +84,12 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
         const endTime = moment(startTime).add(durationInMinutes, 'minutes');
         const fileName = `${startTime.format('YYYY-MM-DD_HH-mm')}-${endTime.format('HH-mm')}-${camera_ip}.mp4`;
         const filePath = `videos/${camera_ip}/${fileName}`
+        if (!fs.existsSync('videos/' + camera_ip)) {
+            fs.mkdirSync('videos/' + camera_ip);
+            console.log(`${'videos/' + camera_ip} created successfully!`);
+        } else {
+            console.log(`${'videos/' + camera_ip} already exists!`);
+        }
 
         const ffmpeg = spawn('ffmpeg', [
             '-i', rtspUrl,
