@@ -225,7 +225,7 @@ app.get("/video", async function (req, res) {
             "Content-Type": "video/mp4",
         };
 
-        // HTTP Status 206 for Partial Content
+        // HTTP Status 206 for Partial Content s
         res.writeHead(206, headers);
 
         // create video read stream for this particular chunk
