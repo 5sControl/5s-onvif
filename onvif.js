@@ -201,6 +201,7 @@ app.get("/video", async function (req, res) {
         videoPath = await getFilePath(time, camera_ip)
     }
 
+    console.log(videoPath, 'videoPath')
     const videoSize = fs.statSync(videoPath).size;
 
     const CHUNK_SIZE = 10 ** 6; // 1MB
