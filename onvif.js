@@ -124,37 +124,44 @@ app.post('/get_stream_url', function (req, res) {
 
 
 app.get('/stream', (req, res) => {
-    console.log(req.body, req.query)
-    let {camera_ip} = req.query;
-    if (!camera_ip) {
-        res.status(400).send("Requires camera_ip field");
+    try {
+        console.log(req.body, req.query)
+        let {camera_ip} = req.query;
+        if (!camera_ip) {
+            res.status(400).send("Requires camera_ip field");
+            return
+        }
+
+        res.writeHead(200, {
+            'Content-Type': 'video/mp4',
+            'Transfer-Encoding': 'chunked'
+        });
+
+        const ffmpegProcess = spawn('ffmpeg', [
+            '-i',
+            `rtsp://admin:just4Taqtile@${camera_ip}:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`,
+            '-c:v',
+            'copy',
+            '-movflags',
+            'frag_keyframe+empty_moov',
+            '-an',
+            '-f',
+            'mp4',
+            '-'
+        ]);
+
+        ffmpegProcess.stdout.pipe(res);
+
+        req.on('close', () => {
+            console.log('KILL')
+            ffmpegProcess.kill();
+        });
+    } catch (e) {
+        console.log(e, 'e')
+        res.send({"status": false, "message": "Getting video stream error"});
         return
     }
 
-    res.writeHead(200, {
-        'Content-Type': 'video/mp4',
-        'Transfer-Encoding': 'chunked'
-    });
-
-    const ffmpegProcess = spawn('ffmpeg', [
-        '-i',
-        `rtsp://admin:just4Taqtile@${camera_ip}:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`,
-        '-c:v',
-        'copy',
-        '-movflags',
-        'frag_keyframe+empty_moov',
-        '-an',
-        '-f',
-        'mp4',
-        '-'
-    ]);
-
-    ffmpegProcess.stdout.pipe(res);
-
-    req.on('close', () => {
-        console.log('KILL')
-        ffmpegProcess.kill();
-    });
 });
 
 const getFilePath = async (time, camera_ip) => {
@@ -179,51 +186,57 @@ const getFilePath = async (time, camera_ip) => {
 }
 
 app.get("/video", async function (req, res) {
-    // Ensure there is a range given for the video
-    const range = req.headers.range;
+    try {
+        // Ensure there is a range given for the video
+        const range = req.headers.range;
 
-    let {time, camera_ip} = req.query;
-    if (!range) {
-        res.status(400).send("Requires Range header");
+        let {time, camera_ip} = req.query;
+        if (!range) {
+            res.status(400).send("Requires Range header");
+            return
+        }
+
+        if (!time || !camera_ip) {
+            res.status(400).send("Requires time field");
+            return
+        }
+
+
+        let videoPath;
+        if (time === 'test') {
+            videoPath = 'images/192.168.1.160/2023-03-10/14-20.mp4'
+        } else {
+            videoPath = await getFilePath(time, camera_ip)
+        }
+
+        console.log(videoPath, 'videoPath')
+        const videoSize = fs.statSync(videoPath).size;
+
+        const CHUNK_SIZE = 10 ** 6; // 1MB
+        const start = Number(range.replace(/\D/g, ""));
+        const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
+
+        // Create headers
+        const contentLength = end - start + 1;
+        const headers = {
+            "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+            "Accept-Ranges": "bytes",
+            "Content-Length": contentLength,
+            "Content-Type": "video/mp4",
+        };
+
+        // HTTP Status 206 for Partial Content
+        res.writeHead(206, headers);
+
+        // create video read stream for this particular chunk
+        const videoStream = fs.createReadStream(videoPath, {start, end});
+
+        videoStream.pipe(res);
+    } catch (e) {
+        console.log(e, 'e')
+        res.send({"status": false, "message": "Getting video stream error"});
         return
     }
-
-    if (!time || !camera_ip) {
-        res.status(400).send("Requires time field");
-        return
-    }
-
-
-    let videoPath;
-    if (time === 'test') {
-        videoPath = 'images/192.168.1.160/2023-03-10/14-20.mp4'
-    } else {
-        videoPath = await getFilePath(time, camera_ip)
-    }
-
-    console.log(videoPath, 'videoPath')
-    const videoSize = fs.statSync(videoPath).size;
-
-    const CHUNK_SIZE = 10 ** 6; // 1MB
-    const start = Number(range.replace(/\D/g, ""));
-    const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
-
-    // Create headers
-    const contentLength = end - start + 1;
-    const headers = {
-        "Content-Range": `bytes ${start}-${end}/${videoSize}`,
-        "Accept-Ranges": "bytes",
-        "Content-Length": contentLength,
-        "Content-Type": "video/mp4",
-    };
-
-    // HTTP Status 206 for Partial Content
-    res.writeHead(206, headers);
-
-    // create video read stream for this particular chunk
-    const videoStream = fs.createReadStream(videoPath, {start, end});
-
-    videoStream.pipe(res);
 });
 
 const uri = `rtsp://${IP}:8554/mystream`;
@@ -245,7 +258,7 @@ let screenshot = null
 setTimeout(() => {
     try {
         const stream = new rtsp.FFMpeg({input: uri, rate: 2});
-        console.log('stream of ' , IP)
+        console.log('stream of ', IP)
         stream.on('data', function (data) {
             if (!screenshot) {
                 console.log(`save screenshot from ${IP}`)
