@@ -5,7 +5,7 @@ const
     Cam = require('onvif').Cam;
 const bodyParser = require('body-parser');
 const DigestFetch = require("./digest-fetch");
-const {getScreenshotUrl, pause, fetchCameras, screenshotUpdate} = require('./fetch_cameras');
+const {getScreenshotUrl, pause, fetchCameras, screenshotUpdate, isItEmulatedCamera, videoRecord} = require('./fetch_cameras');
 const {spawn} = require("child_process");
 const rtsp = require("rtsp-ffmpeg");
 app.use(bodyParser.urlencoded({extended: false}))
@@ -44,7 +44,7 @@ db.run(`
 
 app.post('/add_camera', async function (req, res) {
     const {ip, username, password} = req.body;
-    if (ip.indexOf(IP) !== -1) {
+    if (isItEmulatedCamera(IP, ip)) {
         res.send({
             "status": true,
             "message": "Image was found and saved successfully",

@@ -3,6 +3,13 @@ const DigestFetch = require("./digest-fetch");
 const fs = require("fs");
 const moment = require("moment/moment");
 const {spawn} = require("child_process");
+const isItEmulatedCamera = (serverIp, cameraIp) => {
+    return cameraIp.indexOf(serverIp) !== -1;
+}
+let IP = process.env.IP
+if (!IP) {
+    IP = '192.168.1.150'
+}
 
 function arrayBufferToBuffer(arrayBuffer) {
     const buffer = Buffer.alloc(arrayBuffer.byteLength)
@@ -145,6 +152,9 @@ const fetchCameras = async (IP, cameras, db) => {
         fetchedCameras = await fetchedCameras.json()
         for (const camera of fetchedCameras) {
             const {username, password, id} = camera
+            if (isItEmulatedCamera(IP, id)) {
+                continue
+            }
             if (!cameras[id]) {
                 const screenshot_url_data = await getScreenshotUrl(username, password, id)
                 if (screenshot_url_data.url) {
@@ -164,4 +174,4 @@ const fetchCameras = async (IP, cameras, db) => {
     }
 }
 
-module.exports = {getScreenshotUrl, pause, fetchCameras, screenshotUpdate}
+module.exports = {getScreenshotUrl, pause, fetchCameras, screenshotUpdate, isItEmulatedCamera, videoRecord}
