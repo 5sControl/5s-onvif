@@ -197,6 +197,7 @@ const getFilePath = async (time, camera_ip) => {
 
 const getVideoTimings = async (time, camera_ip) => {
     const date = new Date(time).valueOf();
+    console.log(date, 'date')
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
