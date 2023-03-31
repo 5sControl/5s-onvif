@@ -369,9 +369,9 @@ setTimeout(() => {
     }
 }, 15000)
 
-setTimeout(() => {
-    videoRecord(uri)
-})
+// setTimeout(() => {
+//     videoRecord(uri)
+// })
 
 app.use('/onvif-http/snapshot', async function (req, res) {
     res.send(screenshot);
