@@ -27,9 +27,9 @@ if (!IP) {
 }
 if (!fs.existsSync('images/' + IP)) {
     fs.mkdirSync('images/' + IP);
-    console.log(`${'images/' + IP} created successfully!`);
+    console.log(`${'images/' + IP} created successfully! local`);
 } else {
-    console.log(`${'images/' + IP} already exists!`);
+    console.log(`${'images/' + IP} already exists! local`);
 }
 let cameras = {}
 const sqlite3 = require('sqlite3').verbose();
