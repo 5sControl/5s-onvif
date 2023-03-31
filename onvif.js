@@ -17,6 +17,7 @@ const {
 } = require('./fetch_cameras');
 const {spawn} = require("child_process");
 const rtsp = require("rtsp-ffmpeg");
+const minskTime = 3 * 60 * 60 * 1000;
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 app.use(cors());
@@ -196,7 +197,7 @@ const getFilePath = async (time, camera_ip) => {
 }
 
 const getVideoTimings = async (time, camera_ip) => {
-    const date = new Date(time).valueOf();
+    const date = new Date(time).valueOf() - minskTime;
     console.log(date, 'date')
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
