@@ -364,7 +364,7 @@ app.use('/onvif-http/snapshot', async function (req, res) {
 });
 
 app.listen(3456)
-// fetchCameras(IP, cameras, db)
+fetchCameras(IP, cameras, db)
 
 
 const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
