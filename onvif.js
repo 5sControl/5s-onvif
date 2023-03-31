@@ -254,8 +254,8 @@ app.post("/get_video_start_time", async function (req, res) {
         let videoStartTime = date - videoTimings.date_start;
         const rollBackTime = 5
         if (!!videoStartTime) {
-            videoStartTime = Math.round(videoStartTime)
             videoStartTime = videoStartTime / 1000; //to seconds
+            videoStartTime = Math.round(videoStartTime)
             if (videoStartTime >= rollBackTime) {
                 videoStartTime = videoStartTime - rollBackTime;
             }
