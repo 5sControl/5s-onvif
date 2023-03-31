@@ -1,6 +1,8 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const fs = require('fs')
+
 const
     Cam = require('onvif').Cam;
 const bodyParser = require('body-parser');
@@ -17,9 +19,10 @@ const {spawn} = require("child_process");
 const rtsp = require("rtsp-ffmpeg");
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
+app.use(cors());
 let IP = process.env.IP
 if (!IP) {
-    IP = '192.168.1.110'
+    IP = '192.168.1.150'
 }
 if (!fs.existsSync('images/' + IP)) {
     fs.mkdirSync('images/' + IP);
@@ -363,6 +366,10 @@ setTimeout(() => {
         console.log(e, 'setTimeout start error')
     }
 }, 15000)
+
+setTimeout(() => {
+    videoRecord(uri)
+})
 
 app.use('/onvif-http/snapshot', async function (req, res) {
     res.send(screenshot);
