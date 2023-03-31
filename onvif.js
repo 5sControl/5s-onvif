@@ -5,14 +5,21 @@ const
     Cam = require('onvif').Cam;
 const bodyParser = require('body-parser');
 const DigestFetch = require("./digest-fetch");
-const {getScreenshotUrl, pause, fetchCameras, screenshotUpdate, isItEmulatedCamera, videoRecord} = require('./fetch_cameras');
+const {
+    getScreenshotUrl,
+    pause,
+    fetchCameras,
+    screenshotUpdate,
+    isItEmulatedCamera,
+    videoRecord
+} = require('./fetch_cameras');
 const {spawn} = require("child_process");
 const rtsp = require("rtsp-ffmpeg");
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 let IP = process.env.IP
 if (!IP) {
-    IP = '192.168.1.150'
+    IP = '192.168.1.110'
 }
 if (!fs.existsSync('images/' + IP)) {
     fs.mkdirSync('images/' + IP);
@@ -185,6 +192,86 @@ const getFilePath = async (time, camera_ip) => {
     });
 }
 
+const getVideoTimings = async (time, camera_ip) => {
+    const date = new Date(time).valueOf();
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT *
+                FROM videos
+                where date_start < ${date}
+                  and date_end > ${date}
+                  and camera_ip = '${camera_ip}'`, (err, rows) => {
+            if (err) {
+                throw err;
+            }
+            console.log(rows, 'rows')
+            if (rows[0]) {
+                resolve({date_start: rows[0].date_start, date_end: rows[0].date_end})
+            } else {
+                reject('Row not found')
+            }
+
+        });
+    });
+}
+
+app.post("/is_video_available", async function (req, res) {
+    try {
+        let {time, camera_ip} = req.body;
+
+        if (!time || !camera_ip) {
+            res.status(400).send({status: false, message: "Requires time field"});
+            return
+        }
+
+        let videoPath;
+        if (time === 'test') {
+            videoPath = 'videos/2023-03-24_16-12-16-14-192.168.1.166.mp4'
+        } else {
+            videoPath = await getFilePath(time, camera_ip)
+        }
+
+        console.log(videoPath, 'videoP323233ath dsdasadcasd222adasd')
+        const videoSize = fs.statSync(videoPath).size;
+        res.send({"status": !!videoSize});
+        return
+    } catch (e) {
+        console.log(e, 'e')
+        res.send({"status": false});
+        return
+    }
+});
+app.post("/get_video_start_time", async function (req, res) {
+    try {
+        let {time, camera_ip} = req.body;
+
+        if (!time || !camera_ip) {
+            res.status(400).send("Requires time field");
+            return
+        }
+
+        const videoTimings = await getVideoTimings(time, camera_ip)
+        const date = new Date(time).valueOf();
+        let videoStartTime = date - videoTimings.date_start;
+        const rollBackTime = 5
+        if (!!videoStartTime) {
+            videoStartTime = Math.round(videoStartTime)
+            videoStartTime = videoStartTime / 1000; //to seconds
+            if (videoStartTime >= rollBackTime) {
+                videoStartTime = videoStartTime - rollBackTime;
+            }
+            res.send({"status": true, result: videoStartTime});
+            return
+        } else {
+            res.send({"status": false});
+            return
+        }
+
+    } catch (e) {
+        console.log(e, 'e')
+        res.send({"status": false});
+        return
+    }
+});
 app.get("/video", async function (req, res) {
     try {
         // Ensure there is a range given for the video
@@ -204,12 +291,10 @@ app.get("/video", async function (req, res) {
 
         let videoPath;
         if (time === 'test') {
-            videoPath = 'images/192.168.1.160/2023-03-10/14-20.mp4'
+            videoPath = 'videos/2023-03-24_16-12-16-14-192.168.1.166.mp4'
         } else {
             videoPath = await getFilePath(time, camera_ip)
         }
-
-        console.log(videoPath, 'videoP323233ath dsdasadcasd222adasd')
         const videoSize = fs.statSync(videoPath).size;
 
         const CHUNK_SIZE = 10 ** 6; // 1MB
@@ -279,7 +364,7 @@ app.use('/onvif-http/snapshot', async function (req, res) {
 });
 
 app.listen(3456)
-fetchCameras(IP, cameras, db)
+// fetchCameras(IP, cameras, db)
 
 
 const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
