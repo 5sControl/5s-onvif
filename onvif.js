@@ -205,7 +205,7 @@ const getVideoTimings = async (time, camera_ip) => {
             }
             console.log(rows, 'rows')
             if (rows[0]) {
-                resolve({date_start: rows[0].date_start, date_end: rows[0].date_end})
+                resolve({date_start: rows[0].date_start, date_end: rows[0].date_end, file_name: rows[0].file_name})
             } else {
                 reject('Row not found')
             }
@@ -223,16 +223,21 @@ app.post("/is_video_available", async function (req, res) {
             return
         }
 
-        let videoPath;
+        let videoTimings;
         if (time === 'test') {
-            videoPath = 'videos/2023-03-24_16-12-16-14-192.168.1.166.mp4'
+            videoTimings = 'videos/2023-03-24_16-12-16-14-192.168.1.166.mp4'
         } else {
-            videoPath = await getFilePath(time, camera_ip)
+            videoTimings = await getVideoTimings(time, camera_ip)
         }
 
-        console.log(videoPath, 'videoP323233ath dsdasadcasd222adasd')
-        const videoSize = fs.statSync(videoPath).size;
-        res.send({"status": !!videoSize, videoPath});
+        console.log(videoTimings, 'videoP323233ath dsdasadcasd222adasd')
+        const videoSize = fs.statSync(videoTimings.file_name).size;
+        if (!!videoSize) {
+           res.send({"status": true, date_start: videoTimings.date_start, date_end: videoTimings.date_end, file_name: videoTimings.file_name});
+           return
+        }
+        res.send({"status": false});
+
         return
     } catch (e) {
         console.log(e, 'e')
