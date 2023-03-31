@@ -232,7 +232,7 @@ app.post("/is_video_available", async function (req, res) {
 
         console.log(videoPath, 'videoP323233ath dsdasadcasd222adasd')
         const videoSize = fs.statSync(videoPath).size;
-        res.send({"status": !!videoSize});
+        res.send({"status": !!videoSize, videoPath});
         return
     } catch (e) {
         console.log(e, 'e')
