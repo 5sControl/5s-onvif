@@ -23,7 +23,7 @@ app.use(bodyParser.json())
 app.use(cors());
 let IP = process.env.IP
 if (!IP) {
-    IP = '192.168.1.150'
+    IP = '192.168.1.110'
 }
 if (!fs.existsSync('images/' + IP)) {
     fs.mkdirSync('images/' + IP);
@@ -335,18 +335,6 @@ app.get("/video", async function (req, res) {
 
 const uri = `rtsp://${IP}:8554/mystream`;
 console.log(uri, 'uri')
-// const streamEmulate = spawn('ffmpeg', [
-//     '-stream_loop',
-//     '-1',
-//     '-re',
-//     '-i',
-//     'videos/test.mp4',
-//     '-c',
-//     'copy',
-//     '-f',
-//     'rtsp',
-//     uri
-// ]);
 // 'ffmpeg -stream_loop -1 -re -i videos/test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream'
 let screenshot = null
 setTimeout(() => {
@@ -367,11 +355,11 @@ setTimeout(() => {
     } catch (e) {
         console.log(e, 'setTimeout start error')
     }
-}, 15000)
+}, 500)
 
-// setTimeout(() => {
-//     videoRecord(uri)
-// })
+setTimeout(() => {
+    videoRecord(uri, IP, db)
+}, 1000)
 
 app.use('/onvif-http/snapshot', async function (req, res) {
     res.send(screenshot);
