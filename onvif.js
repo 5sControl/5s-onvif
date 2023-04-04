@@ -219,9 +219,13 @@ const getVideoTimings = async (time, camera_ip) => {
     });
 }
 
-app.post("/is_video_available", async function (req, res) {
+app.use("/is_video_available", async function (req, res) {
     try {
         let {time, camera_ip} = req.body;
+        if (!time) {
+            time = req.query.time;
+            camera_ip = req.query.camera_ip;
+        }
 
         if (!time || !camera_ip) {
             res.status(400).send({status: false, message: "Requires time field"});
