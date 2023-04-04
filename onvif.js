@@ -176,7 +176,7 @@ app.get('/stream', (req, res) => {
 });
 
 const getFilePath = async (time, camera_ip) => {
-    const date = new Date(time).valueOf();
+    const date = new Date(time).valueOf() - minskTime;
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
