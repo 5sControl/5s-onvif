@@ -1,0 +1,2 @@
+docker run --rm -it --network=host aler9/rtsp-simple-server
+ffmpeg -re -stream_loop -1 -i test.mp4 -c copy -f rtsp rtsp://192.168.1.184:8554/mystream
