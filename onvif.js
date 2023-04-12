@@ -427,7 +427,7 @@ const getFreeSpace = async() => {
 
 setInterval(async () => {
     const freeSpace = await getFreeSpace();
-    if (freeSpace < 0.1) {
+    if (freeSpace < 0.9) {
         const videos = await getLast100Videos()
         for (video of videos) {
             await removeFile(video.file_name)
