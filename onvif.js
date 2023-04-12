@@ -369,6 +369,73 @@ app.use('/onvif-http/snapshot', async function (req, res) {
     res.send(screenshot);
 });
 
+const fsPromise = require('fs').promises;
+const disk = require('diskusage');
+const removeLast100Videos = async () => {
+    return new Promise((resolve, reject) => {
+        db.all(`DELETE
+                FROM videos
+                WHERE 'id' IN (SELECT 'id'
+                             FROM videos
+                             ORDER BY 'sort_field'
+                    LIMIT 100
+                    );`, (err, rows) => {
+            if (err) {
+                throw err;
+            }
+            if (rows) {
+                resolve(true)
+            } else {
+                reject('Row not found')
+            }
+
+        });
+    });
+}
+
+const getLast100Videos = async () => {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT *
+                FROM videos
+                ORDER BY 'sort_field' LIMIT 100`, (err, rows) => {
+            if (err) {
+                throw err;
+            }
+            console.log(rows, 'rows to remove')
+            if (rows) {
+                resolve(rows)
+            } else {
+                reject('Row not found')
+            }
+
+        });
+    });
+}
+async function removeFile(filePath) {
+  try {
+    await fsPromise.unlink(filePath);
+    console.log(filePath, 'File deleted successfully');
+  } catch (err) {
+    console.error(err, 'removeFile');
+  }
+}
+
+const getFreeSpace = async() => {
+    const { free, total } = await disk.check("/var/www/5scontrol");
+    return free / total;
+}
+
+setInterval(async () => {
+    const freeSpace = await getFreeSpace();
+    if (freeSpace < 0.1) {
+        const videos = await getLast100Videos()
+        for (video of videos) {
+            await removeFile(video.file_name)
+        }
+        await removeLast100Videos()
+    }
+}, 1000)
+
 app.listen(3456)
 fetchCameras(IP, cameras, db)
 
