@@ -427,7 +427,6 @@ const getFreeSpace = async() => {
 
 setInterval(async () => {
     const freeSpace = await getFreeSpace();
-    console.log(freeSpace, 'freeSpace')
     if (freeSpace < 0.2) {
         const videos = await getLast100Videos()
         for (video of videos) {
