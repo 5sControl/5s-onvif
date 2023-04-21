@@ -46,7 +46,7 @@ const removeLast100Videos = async (db) => {
     return new Promise((resolve, reject) => {
         db.all(`DELETE
                 FROM videos
-                WHERE 'id' IN (SELECT 'id'
+                WHERE id IN (SELECT id
                              FROM videos
                              ORDER BY 'sort_field'
                     LIMIT 100
