@@ -1,12 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const fs = require('fs')
-
-const
-    Cam = require('onvif').Cam;
-const bodyParser = require('body-parser');
 const DigestFetch = require("./digest-fetch");
+const bodyParser = require('body-parser');
+const fs = require('fs')
+const Cam = require('onvif').Cam;
+const {spawn} = require("child_process");
+const rtsp = require("rtsp-ffmpeg");
+const fsPromise = require('fs').promises;
+
+const init = require('./init')
 const {
     getScreenshotUrl,
     pause,
@@ -15,42 +18,18 @@ const {
     isItEmulatedCamera,
     videoRecord
 } = require('./fetch_cameras');
-const {spawn} = require("child_process");
-const rtsp = require("rtsp-ffmpeg");
+const { getFilePath, getVideoTimings, removeLast100Videos, getLast100Videos } = require('./db.js');
+const { getFreeSpace, removeFile } = require('./storage');
+
+let IP = process.env.IP;
+let cameras = {};
 const minskTime = 3 * 60 * 60 * 1000;
-app.use(bodyParser.urlencoded({extended: false}))
-app.use(bodyParser.json())
+const db = init();
+const uri = `rtsp://${IP}:8554/mystream`;
+
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
 app.use(cors());
-let IP = process.env.IP
-if (!IP) {
-    IP = '192.168.1.110'
-}
-if (!fs.existsSync('images/' + IP)) {
-    fs.mkdirSync('images/' + IP);
-    console.log(`${'images/' + IP} created successfully! local`);
-} else {
-    console.log(`${'images/' + IP} already exists! local`);
-}
-let cameras = {}
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('database/video.sqlite3');
-db.run(`
-    CREATE TABLE IF NOT EXISTS videos
-    (
-        id
-        INTEGER
-        PRIMARY
-        KEY,
-        file_name
-        TEXT,
-        date_start
-        int,
-        date_end
-        int,
-        camera_ip
-        TEXT
-    )
-`);
 
 
 app.post('/add_camera', async function (req, res) {
@@ -133,7 +112,6 @@ app.post('/get_stream_url', function (req, res) {
     }
 });
 
-
 app.get('/stream', (req, res) => {
     try {
         console.log(req.body, req.query)
@@ -175,49 +153,8 @@ app.get('/stream', (req, res) => {
 
 });
 
-const getFilePath = async (time, camera_ip) => {
-    const date = new Date(time).valueOf() - minskTime;
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT *
-                FROM videos
-                where date_start < ${date}
-                  and date_end > ${date}
-                  and camera_ip = '${camera_ip}'`, (err, rows) => {
-            if (err) {
-                throw err;
-            }
-            if (rows[0]) {
-                resolve(rows[0].file_name)
-            } else {
-                reject('Row not found')
-            }
 
-        });
-    });
-}
 
-const getVideoTimings = async (time, camera_ip) => {
-    const date = new Date(time).valueOf() - minskTime;
-    console.log(date, 'date')
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT *
-                FROM videos
-                where date_start < ${date}
-                  and date_end > ${date}
-                  and camera_ip = '${camera_ip}'`, (err, rows) => {
-            if (err) {
-                throw err;
-            }
-            console.log(rows, 'rows')
-            if (rows[0]) {
-                resolve({date_start: rows[0].date_start, date_end: rows[0].date_end, file_name: rows[0].file_name})
-            } else {
-                reject('Row not found')
-            }
-
-        });
-    });
-}
 
 app.use("/is_video_available", async function (req, res) {
     try {
@@ -236,7 +173,7 @@ app.use("/is_video_available", async function (req, res) {
         if (time === 'test') {
             videoTimings = 'videos/2023-03-24_16-12-16-14-192.168.1.166.mp4'
         } else {
-            videoTimings = await getVideoTimings(time, camera_ip)
+            videoTimings = await getVideoTimings(time, camera_ip, db, minskTime)
         }
 
         console.log(videoTimings, 'videoP323233ath dsdasadcasd222adasd')
@@ -263,7 +200,7 @@ app.post("/get_video_start_time", async function (req, res) {
             return
         }
 
-        const videoTimings = await getVideoTimings(time, camera_ip)
+        const videoTimings = await getVideoTimings(time, camera_ip, db, minskTime)
         const date = new Date(time).valueOf();
         let videoStartTime = date - videoTimings.date_start;
         const rollBackTime = 5
@@ -307,7 +244,7 @@ app.get("/video", async function (req, res) {
         if (time === 'test') {
             videoPath = 'videos/2023-03-24_16-12-16-14-192.168.1.166.mp4'
         } else {
-            videoPath = await getFilePath(time, camera_ip)
+            videoPath = await getFilePath(time, camera_ip, db, minskTime)
         }
         const videoSize = fs.statSync(videoPath).size;
 
@@ -337,8 +274,7 @@ app.get("/video", async function (req, res) {
     }
 });
 
-const uri = `rtsp://${IP}:8554/mystream`;
-console.log(uri, 'uri')
+
 // 'ffmpeg -stream_loop -1 -re -i videos/test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream'
 let screenshot = null
 setTimeout(() => {
@@ -369,70 +305,14 @@ app.use('/onvif-http/snapshot', async function (req, res) {
     res.send(screenshot);
 });
 
-const fsPromise = require('fs').promises;
-const disk = require('diskusage');
-const removeLast100Videos = async () => {
-    return new Promise((resolve, reject) => {
-        db.all(`DELETE
-                FROM videos
-                WHERE 'id' IN (SELECT 'id'
-                             FROM videos
-                             ORDER BY 'sort_field'
-                    LIMIT 100
-                    );`, (err, rows) => {
-            if (err) {
-                throw err;
-            }
-            if (rows) {
-                resolve(true)
-            } else {
-                reject('Row not found')
-            }
-
-        });
-    });
-}
-
-const getLast100Videos = async () => {
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT *
-                FROM videos
-                ORDER BY 'sort_field' LIMIT 100`, (err, rows) => {
-            if (err) {
-                throw err;
-            }
-            console.log(rows, 'rows to remove')
-            if (rows) {
-                resolve(rows)
-            } else {
-                reject('Row not found')
-            }
-
-        });
-    });
-}
-async function removeFile(filePath) {
-  try {
-    await fsPromise.unlink(filePath);
-    console.log(filePath, 'File deleted successfully');
-  } catch (err) {
-    console.error(err, 'removeFile');
-  }
-}
-
-const getFreeSpace = async() => {
-    const { free, total } = await disk.check("/var/www/5scontrol");
-    return free / total;
-}
-
 setInterval(async () => {
     const freeSpace = await getFreeSpace();
     if (freeSpace < 0.2) {
-        const videos = await getLast100Videos()
+        const videos = await getLast100Videos(db)
         for (video of videos) {
             await removeFile(video.file_name)
         }
-        await removeLast100Videos()
+        await removeLast100Videos(db)
     }
 }, 1000)
 
