@@ -5,7 +5,7 @@ const getFreeSpace = async () => {
     return free / total;
 }
 
-const removeFile = async () => {
+const removeFile = async (filePath) => {
     try {
         await fsPromise.unlink(filePath);
         console.log(filePath, 'File deleted successfully');
