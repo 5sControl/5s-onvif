@@ -22,6 +22,7 @@ const getFilePath = async (time, camera_ip, db, minskTime) => {
 const getVideoTimings = async (time, camera_ip, db, minskTime) => {
     const date = new Date(time).valueOf() - minskTime;
     console.log(date, 'date')
+    console.log(camera_ip, 'camera_ip')
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
