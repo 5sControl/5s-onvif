@@ -114,7 +114,7 @@ app.post('/get_stream_url', function (req, res) {
 });
 
 app.post('/get_actual_screenshot', async function (req, res) {
-    const {ip, username, password} = req.body;
+    const {ip} = req.body;
     if (isItEmulatedCamera(IP, ip)) {
         res.send({
             "status": true,
@@ -123,7 +123,7 @@ app.post('/get_actual_screenshot', async function (req, res) {
         });
         return
     }
-    if (!ip || !username || !password) {
+    if (!ip) {
         res.send({"status": false, "message": "Required fields not found", "result": false});
         return
     }
