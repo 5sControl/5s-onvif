@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Get Actual Screenshot</title>
+</head>
+<body>
+  <button onclick="getActualScreenshot()">Get Screenshot</button>
+
+  <script>
+    async function getActualScreenshot() {
+      const ip = "192.168.1.160";
+      const username = "admin";
+      const password = "just4Taqtile";
+
+      const response = await fetch("http://192.168.1.150:3456/get_actual_screenshot", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ ip, username, password })
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        const image = document.createElement("img");
+        image.src = url;
+        document.body.appendChild(image);
+      } else {
+        console.error(response.statusText);
+      }
+    }
+  </script>
+</body>
+</html>

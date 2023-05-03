@@ -67,6 +67,18 @@ const screenshotUpdate = async (url, client, ip) => {
     }
 }
 
+const returnUpdatedScreenshot = async (url, client) => {
+    try {
+        const response = await client.fetch(url)
+        const arrayBuffer = await response.arrayBuffer()
+        const b = arrayBufferToBuffer(arrayBuffer)
+        return {success: true, screenshot: b}
+    } catch (e) {
+        console.log(e, 'screenshotUpdate error')
+        return {success: false, error: "Error"}
+    }
+}
+
 const runScreenshotMaker = (cameras) => {
     for (const camera in cameras) {
         screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
@@ -130,8 +142,9 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
 
 
 const fetchCameras = async (IP, cameras, db) => {
+    let isDjangoEnable = false;
     try {
-        await pause(120000)
+        await pause(1000)
         let fetchedToken = await fetch(`http://${IP}:80/auth/jwt/create/`, {
             method: "POST",
             headers: {
@@ -143,6 +156,9 @@ const fetchCameras = async (IP, cameras, db) => {
             })
         })
         fetchedToken = await fetchedToken.json()
+        if (fetchedToken?.access) {
+            isDjangoEnable = true
+        }
         let fetchedCameras = await fetch(`http://${IP}:80/api/cameras/`, {
             method: "GET",
             headers: {
@@ -173,6 +189,10 @@ const fetchCameras = async (IP, cameras, db) => {
     } catch (e) {
         console.log(e, 'fetchCameras error')
     }
+
+    if (!isDjangoEnable) {
+        fetchCameras(IP, cameras, db)
+    }
 }
 
-module.exports = {getScreenshotUrl, pause, fetchCameras, screenshotUpdate, isItEmulatedCamera, videoRecord}
+module.exports = {getScreenshotUrl, pause, fetchCameras, screenshotUpdate, isItEmulatedCamera, videoRecord, returnUpdatedScreenshot}

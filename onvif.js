@@ -16,10 +16,11 @@ const {
     fetchCameras,
     screenshotUpdate,
     isItEmulatedCamera,
-    videoRecord
+    videoRecord,
+    returnUpdatedScreenshot
 } = require('./fetch_cameras');
-const { getFilePath, getVideoTimings, removeLast100Videos, getLast100Videos } = require('./db.js');
-const { getFreeSpace, removeFile } = require('./storage');
+const {getFilePath, getVideoTimings, removeLast100Videos, getLast100Videos} = require('./db.js');
+const {getFreeSpace, removeFile} = require('./storage');
 
 let IP = process.env.IP;
 let cameras = {};
@@ -112,6 +113,45 @@ app.post('/get_stream_url', function (req, res) {
     }
 });
 
+app.post('/get_actual_screenshot', async function (req, res) {
+    const {ip, username, password} = req.body;
+    if (isItEmulatedCamera(IP, ip)) {
+        res.send({
+            "status": true,
+            "message": "Image was found and saved successfully",
+            "result": `images/${ip}/snapshot.jpg`
+        });
+        return
+    }
+    if (!ip || !username || !password) {
+        res.send({"status": false, "message": "Required fields not found", "result": false});
+        return
+    }
+
+    if (!cameras[ip]) {
+        res.send({"status": false, "message": "Current camera not added", "result": false});
+        return
+    }
+
+    try {
+        const screenshotData = await returnUpdatedScreenshot(cameras[ip].url, cameras[ip].client, ip)
+        if (screenshotData.screenshot) {
+            res.set('Content-Type', 'application/octet-stream');
+            res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
+            res.send(screenshotData.screenshot);
+        } else {
+            const data = await fsPromise.readFile(`images/${ip}/snapshot.jpg`);
+            res.set('Content-Type', 'application/octet-stream');
+            res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
+            res.send(data);
+        }
+    } catch (e) {
+        console.log(e, 'e')
+        res.send({"status": false, "message": "Error"});
+        return
+    }
+});
+
 app.get('/stream', (req, res) => {
     try {
         console.log(req.body, req.query)
@@ -154,8 +194,6 @@ app.get('/stream', (req, res) => {
 });
 
 
-
-
 app.use("/is_video_available", async function (req, res) {
     try {
         let {time, camera_ip} = req.body;
@@ -179,8 +217,13 @@ app.use("/is_video_available", async function (req, res) {
         console.log(videoTimings, 'videoP323233ath dsdasadcasd222adasd')
         const videoSize = fs.statSync(videoTimings.file_name).size;
         if (!!videoSize) {
-           res.send({"status": true, date_start: videoTimings.date_start, date_end: videoTimings.date_end, file_name: videoTimings.file_name});
-           return
+            res.send({
+                "status": true,
+                date_start: videoTimings.date_start,
+                date_end: videoTimings.date_end,
+                file_name: videoTimings.file_name
+            });
+            return
         }
         res.send({"status": false});
 
