@@ -201,6 +201,7 @@ app.use("/is_video_available", async function (req, res) {
             time = req.query.time;
             camera_ip = req.query.camera_ip;
         }
+        console.log(time, camera_ip, 'time and camera_ip')
 
         if (!time || !camera_ip) {
             res.status(400).send({status: false, message: "Requires time field"});
