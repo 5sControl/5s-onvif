@@ -55,19 +55,16 @@ app.post('/add_camera', async function (req, res) {
     }
 
     try {
-        if (!cameras[ip]) {
-            const screenshotUrlData = await getScreenshotUrl(username, password, ip)
-            console.log(456, screenshotUrlData)
-            if (screenshotUrlData.url) {
-                const client = new DigestFetch(username, password)
-                await screenshotUpdate(screenshotUrlData.url, client, ip)
-                await pause(1000)
-                cameras[ip] = {url: screenshotUrlData.url, client}
-            } else {
-                res.send({"status": false, "message": "Screenshot url not found", "result": false});
-                return
-            }
-
+        const screenshotUrlData = await getScreenshotUrl(username, password, ip)
+        console.log(456, screenshotUrlData)
+        if (screenshotUrlData.url) {
+            const client = new DigestFetch(username, password)
+            await screenshotUpdate(screenshotUrlData.url, client, ip)
+            await pause(1000)
+            cameras[ip] = {url: screenshotUrlData.url, client}
+        } else {
+            res.send({"status": false, "message": "Screenshot url not found", "result": false});
+            return
         }
         res.send({
             "status": true,
