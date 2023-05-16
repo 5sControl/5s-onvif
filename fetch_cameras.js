@@ -159,7 +159,7 @@ const fetchCameras = async (IP, cameras, db) => {
         if (fetchedToken?.access) {
             isDjangoEnable = true
         }
-        let fetchedCameras = await fetch(`http://${IP}:80/api/cameras/`, {
+        let fetchedCameras = await fetch(`http://${IP}:80/api/camera-algorithms/camera/`, {
             method: "GET",
             headers: {
                 'Content-Type': 'application/json;charset=utf-8',
