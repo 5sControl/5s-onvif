@@ -27,6 +27,7 @@ let cameras = {};
 const minskTime = 3 * 60 * 60 * 1000;
 const db = init();
 const uri = `rtsp://${IP}:8554/mystream`;
+let screenshot = null
 
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
@@ -35,16 +36,16 @@ app.use(cors());
 
 app.post('/add_camera', async function (req, res) {
     const {ip, username, password} = req.body;
+    if (!ip || !username || !password) {
+        res.send({"status": false, "message": "Required fields not found", "result": false});
+        return
+    }
     if (isItEmulatedCamera(IP, ip)) {
         res.send({
             "status": true,
             "message": "Image was found and saved successfully",
             "result": `images/${ip}/snapshot.jpg`
         });
-        return
-    }
-    if (!ip || !username || !password) {
-        res.send({"status": false, "message": "Required fields not found", "result": false});
         return
     }
     if (!fs.existsSync('images/' + ip)) {
@@ -59,7 +60,11 @@ app.post('/add_camera', async function (req, res) {
         console.log(456, screenshotUrlData)
         if (screenshotUrlData.url) {
             const client = new DigestFetch(username, password)
-            await screenshotUpdate(screenshotUrlData.url, client, ip)
+            const screenshotUpdated = await screenshotUpdate(screenshotUrlData.url, client, ip)
+            if (!screenshotUpdated.status) {
+                res.send({"status": false, "message": "Screenshot wasn`t created", "result": false});
+                return
+            }
             await pause(1000)
             cameras[ip] = {url: screenshotUrlData.url, client}
         } else {
@@ -75,6 +80,58 @@ app.post('/add_camera', async function (req, res) {
     } catch (e) {
         console.log(e, 'e')
         res.send({"status": false, "message": "Screenshot url not found", "result": false});
+        return
+    }
+    res.send({"status": true});
+});
+
+app.post('/check_camera', async function (req, res) {
+    const {ip, username, password} = req.body;
+    if (!ip || !username || !password) {
+        res.send({"status": false, "message": "Required fields not found"});
+        return
+    }
+    if (isItEmulatedCamera(IP, ip)) {
+        res.set('Content-Type', 'application/octet-stream');
+        res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
+        res.send(screenshot);
+        return
+    }
+
+    if (!fs.existsSync('images/' + ip)) {
+        fs.mkdirSync('images/' + ip);
+        console.log(`${'images/' + ip} created successfully!`);
+    } else {
+        console.log(`${'images/' + ip} already exists!`);
+    }
+
+    try {
+        const screenshotUrlData = await getScreenshotUrl(username, password, ip)
+        console.log(104, screenshotUrlData)
+        if (screenshotUrlData.url) {
+            const client = new DigestFetch(username, password)
+            const screenshotUpdated = await returnUpdatedScreenshot(screenshotUrlData.url, client, ip)
+            if (!screenshotUpdated.success) {
+                res.send({"status": false, "message": "Camera not available"});
+                return
+            }
+
+            if (screenshotUpdated.screenshot) {
+                res.set('Content-Type', 'application/octet-stream');
+                res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
+                res.send(screenshotUpdated.screenshot);
+                return
+            }
+
+        } else {
+            res.send({"status": false, "message": "Camera not found"});
+            return
+        }
+        res.send({"status": false, "message": "Camera not found"});
+        return
+    } catch (e) {
+        console.log(e, 'e')
+        res.send({"status": false, "message": "Camera not found"});
         return
     }
     res.send({"status": true});
@@ -317,7 +374,7 @@ app.get("/video", async function (req, res) {
 
 
 // 'ffmpeg -stream_loop -1 -re -i videos/test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream'
-let screenshot = null
+
 setTimeout(() => {
     try {
         const stream = new rtsp.FFMpeg({input: uri, rate: 2});
