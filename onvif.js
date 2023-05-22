@@ -119,7 +119,7 @@ app.post('/check_camera', async function (req, res) {
             if (screenshotUpdated.screenshot) {
                 res.set('Content-Type', 'application/octet-stream');
                 res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
-                res.send(screenshotUpdated.screenshot);
+                res.send({"status": true, "image": screenshotUpdated.screenshot});
                 return
             }
 
@@ -134,7 +134,7 @@ app.post('/check_camera', async function (req, res) {
         res.send({"status": false, "message": "Camera not found"});
         return
     }
-    res.send({"status": true});
+    res.send({"status": false, "message": "Camera not found"});
 });
 
 app.post('/get_stream_url', function (req, res) {
