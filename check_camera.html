@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket.IO Connection Example</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+</head>
+<body>
+  <h1>Socket.IO Connection Example</h1>
+
+  <script>
+    // Connect to the server
+    var socket = io('http://localhost:3456');
+
+    // Event handler for successful connection
+    socket.on('connect', function() {
+      console.log('Connected to the server');
+    });
+
+    // Event handler for disconnection
+    socket.on('disconnect', function() {
+      console.log('Disconnected from the server');
+    });
+
+    socket.on('camera error', function(msg) {
+      console.log(msg, 'msg')
+  });
+  </script>
+</body>
+</html>

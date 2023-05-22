@@ -9,6 +9,15 @@ const {spawn} = require("child_process");
 const rtsp = require("rtsp-ffmpeg");
 const fsPromise = require('fs').promises;
 
+const { Server } = require("socket.io");
+const http = require('http');
+const server = http.createServer(app);
+const io = require("socket.io")(server, {
+  cors: {
+    origin: "*",
+  }
+});
+
 const init = require('./init')
 const {
     getScreenshotUrl,
@@ -371,6 +380,15 @@ app.get("/video", async function (req, res) {
         return
     }
 });
+io.on('connection', (socket) => {
+    console.log('<<<<<<<<<<<<<<<user connection>>>>>>>>>>>>>>>>>>>')
+  // socket.emit('camera error', {});
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
+});
+
+
 
 
 // 'ffmpeg -stream_loop -1 -re -i videos/test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream'
@@ -412,11 +430,15 @@ setInterval(async () => {
         }
         await removeLast100Videos(db)
     }
-}, 1000)
+}, 60000)
 
-app.listen(3456)
+server.listen(3456, () => {
+    console.log('server started on 3456')
+})
 fetchCameras(IP, cameras, db)
-
+setInterval(() => {
+    io.emit('camera error', {"message": "camera offline"});
+}, 1000)
 
 const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
 
