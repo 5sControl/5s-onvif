@@ -424,7 +424,7 @@ app.use('/onvif-http/snapshot', async function (req, res) {
 setInterval(async () => {
     const freeSpace = await getFreeSpace();
     if (freeSpace < 0.2) {
-        io.emit('storage notification', {"message": "Less than 20% of hard drive space left. Old videos will be deleted"});
+        io.emit('notification', {"message": "Less than 20% of hard drive space left. Old videos will be deleted"});
         const videos = await getLast100Videos(db)
         for (video of videos) {
             await removeFile(video.file_name)
@@ -438,7 +438,7 @@ server.listen(3456, () => {
 })
 fetchCameras(IP, cameras, db)
 setInterval(() => {
-    io.emit('storage notification', {"message": "TEST TEST TEST"});
+    io.emit('notification', {"message": "TEST TEST TEST"});
 }, 5000)
 const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
 
