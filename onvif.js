@@ -437,9 +437,6 @@ server.listen(3456, () => {
     console.log('server started on 3456')
 })
 fetchCameras(IP, cameras, db)
-setInterval(() => {
-    io.emit('notification', {"message": "TEST TEST TEST"});
-}, 5000)
 const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
 
 
