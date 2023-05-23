@@ -88,6 +88,7 @@ const runScreenshotMaker = async (cameras, io) => {
         for (const camera in cameras) {
             const res = await screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
             if (!res.success) {
+                console.log({"message": `Camera ${camera} lost connection`})
                 io.emit('notification', {"message": `Camera ${camera} lost connection`});
             }
         }
