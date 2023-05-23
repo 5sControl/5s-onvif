@@ -79,14 +79,17 @@ const returnUpdatedScreenshot = async (url, client) => {
     }
 }
 
-const runScreenshotMaker = (cameras) => {
+const runScreenshotMaker = async (cameras, io) => {
     for (const camera in cameras) {
-        screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
+        await screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
     }
 
-    setInterval(() => {
+    setInterval(async () => {
         for (const camera in cameras) {
-            screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
+            const res = await screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
+            if (!res.success) {
+                io.emit('notification', {"message": `Camera ${camera} lost connection`});
+            }
         }
     }, 1000 * 60 * 15)
 }
@@ -141,7 +144,7 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
 }
 
 
-const fetchCameras = async (IP, cameras, db) => {
+const fetchCameras = async (IP, cameras, db, io) => {
     let isDjangoEnable = false;
     try {
         await pause(1000)
@@ -184,7 +187,7 @@ const fetchCameras = async (IP, cameras, db) => {
                 }
             }
         }
-        runScreenshotMaker(cameras)
+        await runScreenshotMaker(cameras, io)
         runVideoRecorder(cameras, db)
     } catch (e) {
         if (!isDjangoEnable) {

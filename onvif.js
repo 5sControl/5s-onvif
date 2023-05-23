@@ -30,6 +30,7 @@ const {
 } = require('./fetch_cameras');
 const {getFilePath, getVideoTimings, removeLast100Videos, getLast100Videos} = require('./db.js');
 const {getFreeSpace, removeFile} = require('./storage');
+const {sendSystemMessage} = require('./system-messages')
 
 let IP = process.env.IP;
 let cameras = {};
@@ -424,7 +425,8 @@ app.use('/onvif-http/snapshot', async function (req, res) {
 setInterval(async () => {
     const freeSpace = await getFreeSpace();
     if (freeSpace < 0.2) {
-        io.emit('notification', {"message": "Less than 20% of hard drive space left. Old videos will be deleted"});
+        io.emit('notification', {"message": "Low disk space. Old videos will be deleted"});
+        await sendSystemMessage(IP, {title: "Low disk space", content: "Less than 20% of hard drive space left. Old videos will be deleted"})
         const videos = await getLast100Videos(db)
         for (video of videos) {
             await removeFile(video.file_name)
@@ -436,7 +438,7 @@ setInterval(async () => {
 server.listen(3456, () => {
     console.log('server started on 3456')
 })
-fetchCameras(IP, cameras, db)
+fetchCameras(IP, cameras, db, io)
 const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
 
 
