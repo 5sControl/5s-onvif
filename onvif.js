@@ -71,7 +71,7 @@ app.post('/add_camera', async function (req, res) {
         if (screenshotUrlData.url) {
             const client = new DigestFetch(username, password)
             const screenshotUpdated = await screenshotUpdate(screenshotUrlData.url, client, ip)
-            if (!screenshotUpdated.status) {
+            if (!screenshotUpdated.success) {
                 res.send({"status": false, "message": "Screenshot wasn`t created", "result": false});
                 return
             }
