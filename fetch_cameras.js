@@ -185,7 +185,8 @@ const fetchCameras = async (IP, cameras, db, io) => {
                     cameras[camera.id] = {
                         url: screenshot_url_data.url,
                         client: new DigestFetch(username, password),
-                        stream_url
+                        stream_url,
+                        screenshotBuffer: null
                     }
                 }
             }
@@ -202,7 +203,7 @@ const fetchCameras = async (IP, cameras, db, io) => {
     }
 
     if (!isDjangoEnable) {
-        fetchCameras(IP, cameras, db)
+        fetchCameras(IP, cameras, db, io)
     }
 }
 
