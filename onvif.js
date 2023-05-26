@@ -40,7 +40,7 @@ const uri = `rtsp://${IP}:8554/mystream`;
 let screenshot = null
 setInterval(() => {
     console.log(cameras, 'cameras')
-}, 10000)
+}, 60000)
 
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
