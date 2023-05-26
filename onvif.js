@@ -403,7 +403,7 @@ setTimeout(() => {
             if (!screenshot) {
                 console.log(`save screenshot from ${IP}`)
                 fs.writeFile(`images/${IP}/snapshot.jpg`, data, function (err) {
-                    console.log(err, 'err')
+                    console.log(err, 'stream on data err')
                     screenshot = data;
                 })
             } else {
@@ -445,7 +445,7 @@ setInterval(async () => {
     }
 }, 60000)
 
-server.listen(3456, () => {
+server.listen(3457, () => {
     console.log('server started on 3456')
 })
 fetchCameras(IP, cameras, db, io)

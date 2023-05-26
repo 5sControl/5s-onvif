@@ -5,6 +5,7 @@ const moment = require("moment/moment");
 const {spawn} = require("child_process");
 const {CameraErrorHandler} = require("./camera_error_handler")
 const cameraErrorHandler = new CameraErrorHandler()
+const {sendSystemMessage} = require('./system-messages')
 const isItEmulatedCamera = (serverIp, cameraIp) => {
     return cameraIp.indexOf(serverIp) !== -1;
 }
@@ -30,13 +31,13 @@ const getScreenshotUrl = async (username, password, camera_ip) => {
                 password: password,
                 port: 80
             }, function (err) {
-                console.log(err, 'err')
+                console.log(err, 'new Cam err')
                 if (err) {
                     resolve({"error": 'Auth error'})
                 } else {
                     this.getSnapshotUri({protocol: 'RTSP'}, function (err, stream) {
                         if (err) {
-                            console.log(err, 'err')
+                            console.log(err, 'getSnapshotUri err')
                             resolve({"error": err})
                             return
                         }
@@ -81,7 +82,7 @@ const returnUpdatedScreenshot = async (url, client) => {
     }
 }
 
-const runScreenshotMaker = async (cameras, io) => {
+const runScreenshotMaker = async (cameras, io, IP) => {
     for (const camera in cameras) {
         await screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
     }
@@ -92,6 +93,10 @@ const runScreenshotMaker = async (cameras, io) => {
             const message = cameraErrorHandler.add(camera, !res.success)
             if (!res.success) {
                 if (message) {
+                    await sendSystemMessage(IP, {
+                        title: "Camera error",
+                        content: message
+                    })
                     io.emit('notification', {"message": message});
                 }
             } else {
@@ -139,7 +144,8 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
             } else {
                 console.log(`Recorded video: ${fileName}`);
                 db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
-                        VALUES (?, ?, ?, ?)`, [filePath, startTime.valueOf() - minskTime, endTime.valueOf() - minskTime, camera_ip]);
+                        VALUES (?, ?, ?,
+                                ?)`, [filePath, startTime.valueOf() - minskTime, endTime.valueOf() - minskTime, camera_ip]);
                 videoRecord(rtspUrl, camera_ip, db)
             }
 
@@ -184,6 +190,7 @@ const fetchCameras = async (IP, cameras, db, io) => {
             }
             if (!cameras[id]) {
                 const screenshot_url_data = await getScreenshotUrl(username, password, id)
+                console.log(screenshot_url_data, 'screenshot_url_data')
                 if (screenshot_url_data.url) {
                     const stream_url = `rtsp://${username}:${password}@${id}/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
                     cameras[camera.id] = {
@@ -192,10 +199,17 @@ const fetchCameras = async (IP, cameras, db, io) => {
                         stream_url,
                         screenshotBuffer: null
                     }
+                } else {
+                    const message = `Camera ${id} lost connection, check the camera`
+                    await sendSystemMessage(IP, {
+                        title: "Camera error",
+                        content: message
+                    })
+                    io.emit('notification', {"message": message});
                 }
             }
         }
-        await runScreenshotMaker(cameras, io)
+        await runScreenshotMaker(cameras, io, IP)
         runVideoRecorder(cameras, db)
     } catch (e) {
         if (!isDjangoEnable) {
@@ -211,4 +225,12 @@ const fetchCameras = async (IP, cameras, db, io) => {
     }
 }
 
-module.exports = {getScreenshotUrl, pause, fetchCameras, screenshotUpdate, isItEmulatedCamera, videoRecord, returnUpdatedScreenshot}
+module.exports = {
+    getScreenshotUrl,
+    pause,
+    fetchCameras,
+    screenshotUpdate,
+    isItEmulatedCamera,
+    videoRecord,
+    returnUpdatedScreenshot
+}
