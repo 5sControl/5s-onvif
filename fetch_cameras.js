@@ -64,7 +64,7 @@ const screenshotUpdate = async (url, client, ip) => {
         })
         return {success: true, buffer}
     } catch (e) {
-        console.log(e, 'screenshotUpdate error')
+        console.log(`code: ${e?.code}, camera ip: ${e?.socket?.remoteAddress}`, 'screenshotUpdate error')
         return {success: false, error: "Error"}
     }
 }
@@ -76,7 +76,7 @@ const returnUpdatedScreenshot = async (url, client) => {
         const b = arrayBufferToBuffer(arrayBuffer)
         return {success: true, screenshot: b}
     } catch (e) {
-        console.log(e, 'screenshotUpdate error')
+        console.log(e, 'returnUpdatedScreenshot error')
         return {success: false, error: "Error"}
     }
 }
