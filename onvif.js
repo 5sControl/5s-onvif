@@ -423,7 +423,7 @@ app.use('/onvif-http/snapshot', async function (req, res) {
         res.send(screenshot);
         return
     }
-
+    console.log(cameras[cameraIp]?.screenshotBuffer, 'cameras[cameraIp]?.screenshotBuffer')
     res.send(cameras[cameraIp]?.screenshotBuffer)
 });
 
