@@ -3,6 +3,8 @@ const DigestFetch = require("./digest-fetch");
 const fs = require("fs");
 const moment = require("moment/moment");
 const {spawn} = require("child_process");
+const {CameraErrorHandler} = require("camera_error_handler")
+const cameraErrorHandler = new CameraErrorHandler()
 const isItEmulatedCamera = (serverIp, cameraIp) => {
     return cameraIp.indexOf(serverIp) !== -1;
 }
@@ -87,11 +89,12 @@ const runScreenshotMaker = async (cameras, io) => {
     setInterval(async () => {
         for (const camera in cameras) {
             const res = await screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
+            const message = cameraErrorHandler.add(camera, !res.success)
             if (!res.success) {
-                console.log({"message": `Camera ${camera} lost connection`})
-                io.emit('notification', {"message": `Camera ${camera} lost connection`});
+                if (message) {
+                    io.emit('notification', {"message": message});
+                }
             } else {
-                console.log(res.buffer, camera)
                 cameras[camera].screenshotBuffer = res.buffer;
             }
         }
