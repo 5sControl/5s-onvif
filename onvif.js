@@ -424,7 +424,7 @@ app.use('/onvif-http/snapshot', async function (req, res) {
         return
     }
 
-    res.send(cameras?[cameraIp]?.screenshotBuffer
+    res.send(cameras[cameraIp]?.screenshotBuffer)
 });
 
 setInterval(async () => {
