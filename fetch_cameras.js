@@ -3,7 +3,7 @@ const DigestFetch = require("./digest-fetch");
 const fs = require("fs");
 const moment = require("moment/moment");
 const {spawn} = require("child_process");
-const {CameraErrorHandler} = require("camera_error_handler")
+const {CameraErrorHandler} = require("./camera_error_handler")
 const cameraErrorHandler = new CameraErrorHandler()
 const isItEmulatedCamera = (serverIp, cameraIp) => {
     return cameraIp.indexOf(serverIp) !== -1;
