@@ -56,11 +56,11 @@ const screenshotUpdate = async (url, client, ip) => {
     try {
         const response = await client.fetch(url)
         const arrayBuffer = await response.arrayBuffer()
-        const b = arrayBufferToBuffer(arrayBuffer)
-        fs.writeFile(`images/${ip}/snapshot.jpg`, b, err => {
+        const buffer = arrayBufferToBuffer(arrayBuffer)
+        fs.writeFile(`images/${ip}/snapshot.jpg`, buffer, err => {
             if (err) console.log(err)
         })
-        return {success: true}
+        return {success: true, buffer}
     } catch (e) {
         console.log(e, 'screenshotUpdate error')
         return {success: false, error: "Error"}
@@ -90,9 +90,11 @@ const runScreenshotMaker = async (cameras, io) => {
             if (!res.success) {
                 console.log({"message": `Camera ${camera} lost connection`})
                 io.emit('notification', {"message": `Camera ${camera} lost connection`});
+            } else {
+                camera.screenshotBuffer = res.buffer;
             }
         }
-    }, 1000 * 60 * 15)
+    }, 1000)
 }
 
 const runVideoRecorder = (cameras, db) => {

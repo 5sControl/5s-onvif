@@ -9,13 +9,13 @@ const {spawn} = require("child_process");
 const rtsp = require("rtsp-ffmpeg");
 const fsPromise = require('fs').promises;
 
-const { Server } = require("socket.io");
+const {Server} = require("socket.io");
 const http = require('http');
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
-  cors: {
-    origin: "*",
-  }
+    cors: {
+        origin: "*",
+    }
 });
 
 const init = require('./init')
@@ -383,13 +383,11 @@ app.get("/video", async function (req, res) {
 });
 io.on('connection', (socket) => {
     console.log('<<<<<<<<<<<<<<<user connection>>>>>>>>>>>>>>>>>>>')
-  // socket.emit('camera error', {});
-  socket.on('disconnect', () => {
-    console.log('user disconnected');
-  });
+    // socket.emit('camera error', {});
+    socket.on('disconnect', () => {
+        console.log('user disconnected');
+    });
 });
-
-
 
 
 // 'ffmpeg -stream_loop -1 -re -i videos/test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream'
@@ -419,14 +417,24 @@ setTimeout(() => {
 }, 1000)
 
 app.use('/onvif-http/snapshot', async function (req, res) {
-    res.send(screenshot);
+    const queryParams = req.query;
+    const cameraIp = queryParams?.camera_ip;
+    if (!cameraIp) {
+        res.send(screenshot);
+        return
+    }
+
+    res.send(cameras?[cameraIp]?.screenshotBuffer
 });
 
 setInterval(async () => {
     const freeSpace = await getFreeSpace();
     if (freeSpace < 0.2) {
         io.emit('notification', {"message": "Low disk space. Old videos will be deleted"});
-        await sendSystemMessage(IP, {title: "Low disk space", content: "Less than 20% of hard drive space left. Old videos will be deleted"})
+        await sendSystemMessage(IP, {
+            title: "Low disk space",
+            content: "Less than 20% of hard drive space left. Old videos will be deleted"
+        })
         const videos = await getLast100Videos(db)
         for (video of videos) {
             await removeFile(video.file_name)
