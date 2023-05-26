@@ -95,7 +95,7 @@ const runScreenshotMaker = async (cameras, io) => {
                 cameras[camera].screenshotBuffer = res.buffer;
             }
         }
-    }, 1000 * 10)
+    }, 1000)
 }
 
 const runVideoRecorder = (cameras, db) => {
