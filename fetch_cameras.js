@@ -91,7 +91,8 @@ const runScreenshotMaker = async (cameras, io) => {
                 console.log({"message": `Camera ${camera} lost connection`})
                 io.emit('notification', {"message": `Camera ${camera} lost connection`});
             } else {
-                camera.screenshotBuffer = res.buffer;
+                console.log(res.buffer, camera)
+                cameras[camera].screenshotBuffer = res.buffer;
             }
         }
     }, 1000 * 10)
