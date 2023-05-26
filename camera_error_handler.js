@@ -9,7 +9,9 @@ class CameraErrorHandler {
     }
 
     this.checks[camera].errors.push(error)
-    console.log(this.checks[camera].errors.length, this.checks[camera].errors.every((elem) => elem), '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+    if (this.checks[camera].errors.every((elem) => elem)) {
+      console.log(this.checks[camera].errors.length)
+    }
     if (this.checks[camera].errors.length > 100) {
       const isEveryError = this.checks[camera].errors.every((elem) => elem)
       this.checks[camera].errors = []

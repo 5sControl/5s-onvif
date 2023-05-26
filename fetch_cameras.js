@@ -64,7 +64,7 @@ const screenshotUpdate = async (url, client, ip) => {
         })
         return {success: true, buffer}
     } catch (e) {
-        console.log(`code: ${e?.code}, camera ip: ${e?.socket?.remoteAddress}`, 'screenshotUpdate error')
+        console.log(`camera ip: ${ip}`, 'screenshotUpdate error')
         return {success: false, error: "Error"}
     }
 }
