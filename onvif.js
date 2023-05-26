@@ -38,6 +38,9 @@ const minskTime = 3 * 60 * 60 * 1000;
 const db = init();
 const uri = `rtsp://${IP}:8554/mystream`;
 let screenshot = null
+setInterval(() => {
+    console.log(cameras, 'cameras')
+}, 10000)
 
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
