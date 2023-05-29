@@ -63,7 +63,7 @@ const screenshotUpdate = async (url, client, ip) => {
         fs.writeFile(`images/${ip}/snapshot.jpg`, buffer, err => {
             if (err) console.log(err)
         })
-        return {success: true, buffer}
+        return {success: true, arrayBuffer}
     } catch (e) {
         console.log(`camera ip: ${ip}`, 'screenshotUpdate error')
         return {success: false, error: "Error"}
