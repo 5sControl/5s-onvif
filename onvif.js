@@ -445,7 +445,7 @@ setInterval(async () => {
     }
 }, 60000)
 
-server.listen(3457, () => {
+server.listen(3456, () => {
     console.log('server started on 3456')
 })
 fetchCameras(IP, cameras, db, io)
