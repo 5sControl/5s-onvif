@@ -235,7 +235,7 @@ app.get('/stream', (req, res) => {
 
         let link = `rtsp://admin:just4Taqtile@${camera_ip}:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
         if (camera_ip === IP) {
-            link = `rtsp://${IP}}:8554/mystream`
+            link = `rtsp://${IP}:8554/mystream`
         }
         const ffmpegProcess = spawn('ffmpeg', [
             '-i',
