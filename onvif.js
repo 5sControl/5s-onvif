@@ -233,9 +233,13 @@ app.get('/stream', (req, res) => {
             'Transfer-Encoding': 'chunked'
         });
 
+        let link = `rtsp://admin:just4Taqtile@${camera_ip}:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
+        if (camera_ip === IP) {
+            link = `rtsp://${IP}}:8554/mystream`
+        }
         const ffmpegProcess = spawn('ffmpeg', [
             '-i',
-            `rtsp://admin:just4Taqtile@${camera_ip}:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`,
+            link,
             '-c:v',
             'copy',
             '-movflags',
