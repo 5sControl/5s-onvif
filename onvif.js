@@ -426,6 +426,7 @@ setTimeout(() => {
 app.use('/onvif-http/snapshot', async function (req, res) {
     const queryParams = req.query;
     const cameraIp = queryParams?.camera_ip;
+    console.log(queryParams, 'queryParams on /onvif-http/snapshot')
     if (!cameraIp) {
         res.send(screenshot);
         return
