@@ -290,6 +290,7 @@ app.use("/is_video_available", async function (req, res) {
 
         console.log(videoTimings, 'videoP323233ath dsdasadcasd222adasd')
         const videoSize = fs.statSync(videoTimings.file_name).size;
+        console.log(videoSize, 'videoSize')
         if (!!videoSize) {
             res.send({
                 "status": true,
@@ -297,8 +298,10 @@ app.use("/is_video_available", async function (req, res) {
                 date_end: videoTimings.date_end,
                 file_name: videoTimings.file_name
             });
+            console.log('<<<<<<<<<<<<<<status: true>>>>>>>>>>>>>>>>')
             return
         }
+        console.log('<<<<<<<<<<<<<<status: false>>>>>>>>>>>>>>>>')
         res.send({"status": false});
 
         return
