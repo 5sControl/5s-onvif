@@ -238,6 +238,8 @@ app.get('/stream', (req, res) => {
             link = `rtsp://${IP}:8554/mystream`
         }
         const ffmpegProcess = spawn('ffmpeg', [
+            "-loglevel",
+            "0",
             '-i',
             link,
             '-c:v',
