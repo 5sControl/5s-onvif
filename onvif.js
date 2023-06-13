@@ -34,7 +34,6 @@ const {sendSystemMessage} = require('./system-messages')
 
 let IP = process.env.IP;
 let cameras = {};
-const minskTime = 3 * 60 * 60 * 1000;
 const db = init();
 const uri = `rtsp://${IP}:8554/mystream`;
 let screenshot = null
@@ -285,7 +284,7 @@ app.use("/is_video_available", async function (req, res) {
         if (time === 'test') {
             videoTimings = 'videos/2023-03-24_16-12-16-14-192.168.1.166.mp4'
         } else {
-            videoTimings = await getVideoTimings(time, camera_ip, db, minskTime)
+            videoTimings = await getVideoTimings(time, camera_ip, db)
         }
 
         console.log(videoTimings, 'videoP323233ath dsdasadcasd222adasd')
@@ -320,7 +319,7 @@ app.post("/get_video_start_time", async function (req, res) {
             return
         }
 
-        const videoTimings = await getVideoTimings(time, camera_ip, db, minskTime)
+        const videoTimings = await getVideoTimings(time, camera_ip, db)
         const date = new Date(time).valueOf();
         let videoStartTime = date - videoTimings.date_start;
         const rollBackTime = 5
@@ -364,7 +363,7 @@ app.get("/video", async function (req, res) {
         if (time === 'test') {
             videoPath = 'videos/2023-03-24_16-12-16-14-192.168.1.166.mp4'
         } else {
-            videoPath = await getFilePath(time, camera_ip, db, minskTime)
+            videoPath = await getFilePath(time, camera_ip, db)
         }
         const videoSize = fs.statSync(videoPath).size;
 

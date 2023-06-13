@@ -9,7 +9,6 @@ const {sendSystemMessage} = require('./system-messages')
 const isItEmulatedCamera = (serverIp, cameraIp) => {
     return cameraIp.indexOf(serverIp) !== -1;
 }
-const minskTime = 3 * 60 * 60 * 1000;
 let IP = process.env.IP
 if (!IP) {
     IP = '192.168.1.150'
@@ -145,7 +144,7 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
                 console.log(`Recorded video: ${fileName}`);
                 db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
                         VALUES (?, ?, ?,
-                                ?)`, [filePath, startTime.valueOf() - minskTime, endTime.valueOf() - minskTime, camera_ip]);
+                                ?)`, [filePath, startTime.valueOf(), endTime.valueOf(), camera_ip]);
                 videoRecord(rtspUrl, camera_ip, db)
             }
 
