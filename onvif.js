@@ -402,8 +402,7 @@ io.on('connection', (socket) => {
 });
 
 
-// 'ffmpeg -stream_loop -1 -re -i videos/test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream'
-
+// nohup  ffmpeg -stream_loop -1 -re -i express-test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream &
 setTimeout(() => {
     try {
         const stream = new rtsp.FFMpeg({input: uri, rate: 2});
