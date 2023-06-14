@@ -295,7 +295,8 @@ app.use("/is_video_available", async function (req, res) {
                 "status": true,
                 date_start: videoTimings.date_start,
                 date_end: videoTimings.date_end,
-                file_name: videoTimings.file_name
+                file_name: videoTimings.file_name,
+                video_start_from: time - videoTimings.date_start
             });
             console.log('<<<<<<<<<<<<<<status: true>>>>>>>>>>>>>>>>')
             return
