@@ -1,5 +1,5 @@
 const getFilePath = async (time, camera_ip, db) => {
-    const date = new Date(time).valueOf();
+    const date = time;
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
