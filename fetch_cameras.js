@@ -224,7 +224,7 @@ const fetchCameras = async (IP, cameras, db, io) => {
             }
         }
         await runScreenshotMaker(cameras, io, IP)
-        runVideoRecorder({"192.168.1.168": cameras["192.168.1.168"]}, db)
+        runVideoRecorder(cameras, db)
     } catch (e) {
         if (!isDjangoEnable) {
             console.log(`Attempt to connect to django failed, server ip: ${IP}`)
