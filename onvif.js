@@ -424,7 +424,10 @@ setTimeout(() => {
 }, 500)
 
 setTimeout(() => {
-    videoRecord(uri, IP, db)
+    // office server
+    if (IP === '192.168.1.110') {
+        videoRecord(uri, IP, db)
+    }
 }, 1000)
 
 app.use('/onvif-http/snapshot', async function (req, res) {
