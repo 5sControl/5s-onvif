@@ -136,10 +136,10 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
             if (!ffmpeg.killed) {
                 console.log('KILLLLL')
                 ffmpeg.on('exit', async () => {
-                    console.log('kill')
+                    console.log('kill after exit kill')
                 })
                 ffmpeg.kill()
-                console.log(`Video not recorded, please check connection to ${camera_ip} camera`)
+                console.log(`Video not recorded, please check connection to ${camera_ip} camera, timeout`)
                 videoRecord(rtspUrl, camera_ip, db)
             }
 
@@ -149,6 +149,9 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
 
         ffmpeg.on('exit', async () => {
             console.log('<<<EXIT>>>')
+            ffmpeg.on('exit', async () => {
+                    console.log('kill after exit')
+                })
             ffmpeg.kill()
 
             if ((Date.now() - now) < 1000 * 60) {
