@@ -132,9 +132,24 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
             filePath
         ]);
 
+        setTimeout(async () => {
+            if (!ffmpeg.killed) {
+                console.log('KILLLLL')
+                ffmpeg.on('exit', async () => {
+                    console.log('kill')
+                })
+                ffmpeg.kill()
+                console.log(`Video not recorded, please check connection to ${camera_ip} camera`)
+                videoRecord(rtspUrl, camera_ip, db)
+            }
+
+        }, 1000 * 60 * durationInMinutes * 3)
+
         const now = Date.now()
 
         ffmpeg.on('exit', async () => {
+            console.log('<<<EXIT>>>')
+            ffmpeg.kill()
 
             if ((Date.now() - now) < 1000 * 60) {
                 console.log(`Video not recorded, please check connection to ${camera_ip} camera`)
@@ -209,7 +224,7 @@ const fetchCameras = async (IP, cameras, db, io) => {
             }
         }
         await runScreenshotMaker(cameras, io, IP)
-        runVideoRecorder(cameras, db)
+        runVideoRecorder({"192.168.1.168": cameras["192.168.1.168"]}, db)
     } catch (e) {
         if (!isDjangoEnable) {
             console.log(`Attempt to connect to django failed, server ip: ${IP}`)
