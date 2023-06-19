@@ -132,13 +132,12 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
             filePath
         ]);
 
+        let isProcessKilled = false;
+
         setTimeout(async () => {
-            if (!ffmpeg.killed) {
-                console.log('KILLLLL')
-                ffmpeg.on('exit', async () => {
-                    console.log('kill after exit kill')
-                })
+            if (!isProcessKilled) {
                 ffmpeg.kill()
+                isProcessKilled = true;
                 console.log(`Video not recorded, please check connection to ${camera_ip} camera, timeout`)
                 videoRecord(rtspUrl, camera_ip, db)
             }
@@ -148,12 +147,12 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
         const now = Date.now()
 
         ffmpeg.on('exit', async () => {
+            if (isProcessKilled) {
+                console.log(`Video not recorded, please check connection to ${camera_ip} camera, killed`)
+                return
+            }
             console.log('<<<EXIT>>>')
-            ffmpeg.on('exit', async () => {
-                    console.log('kill after exit')
-                })
-            ffmpeg.kill()
-
+            isProcessKilled = true
             if ((Date.now() - now) < 1000 * 60) {
                 console.log(`Video not recorded, please check connection to ${camera_ip} camera`)
                 await pause(30000)
