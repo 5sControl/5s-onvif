@@ -143,7 +143,7 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
                 videoRecord(rtspUrl, camera_ip, db)
             }
 
-        }, 1000 * 60 * durationInMinutes * 3)
+        }, 1000 * 60 * durationInMinutes * 2)
 
         const now = Date.now()
 
