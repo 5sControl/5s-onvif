@@ -96,7 +96,7 @@ const runScreenshotMaker = async (cameras, io, IP) => {
                         title: "Camera error",
                         content: message
                     })
-                    io.emit('notification', {"message": message});
+                    io.emit('notification', {"message": message, "type": "error"});
                 }
             } else {
                 cameras[camera].screenshotBuffer = res.buffer;
@@ -221,7 +221,7 @@ const fetchCameras = async (IP, cameras, db, io) => {
                         title: "Camera error",
                         content: message
                     })
-                    io.emit('notification', {"message": message});
+                    io.emit('notification', {"message": message, "type": "error"});
                 }
             }
         }
