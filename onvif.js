@@ -28,7 +28,7 @@ const {
     videoRecord,
     returnUpdatedScreenshot
 } = require('./fetch_cameras');
-const {getFilePath, getVideoTimings, removeLast100Videos, getLast100Videos} = require('./db.js');
+const {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos} = require('./db.js');
 const {getFreeSpace, removeFile} = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
 
@@ -448,11 +448,11 @@ setInterval(async () => {
             title: "Low disk space",
             content: "Less than 20% of hard drive space left. Old videos will be deleted"
         })
-        const videos = await getLast100Videos(db)
+        const videos = await getLast500Videos(db)
+        await removeLast500Videos(db)
         for (video of videos) {
             await removeFile(video.file_name)
         }
-        await removeLast100Videos(db)
     }
 }, 60000)
 

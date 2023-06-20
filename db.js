@@ -43,14 +43,14 @@ const getVideoTimings = async (time, camera_ip, db) => {
     });
 }
 
-const removeLast100Videos = async (db) => {
+const removeLast500Videos = async (db) => {
     return new Promise((resolve, reject) => {
         db.all(`DELETE
                 FROM videos
                 WHERE id IN (SELECT id
                              FROM videos
                              ORDER BY 'sort_field'
-                    LIMIT 100
+                    LIMIT 500
                     );`, (err, rows) => {
             if (err) {
                 throw err;
@@ -65,11 +65,11 @@ const removeLast100Videos = async (db) => {
     });
 }
 
-const getLast100Videos = async (db) => {
+const getLast500Videos = async (db) => {
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
-                ORDER BY 'sort_field' LIMIT 100`, (err, rows) => {
+                ORDER BY 'sort_field' LIMIT 500`, (err, rows) => {
             if (err) {
                 throw err;
             }
@@ -86,4 +86,4 @@ const getLast100Videos = async (db) => {
 
 
 
-module.exports = {getFilePath, getVideoTimings, removeLast100Videos, getLast100Videos}
+module.exports = {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos}
