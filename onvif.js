@@ -290,13 +290,21 @@ app.use("/is_video_available", async function (req, res) {
         console.log(videoTimings, 'videoP323233ath dsdasadcasd222adasd')
         const videoSize = fs.statSync(videoTimings.file_name).size;
         console.log(videoSize, 'videoSize')
+        const rollBackTime = 10 * 1000;
+        let video_start_from = time - videoTimings.date_start;
+        if (video_start_from > rollBackTime) {
+            video_start_from -= rollBackTime
+        } else {
+            video_start_from = 0
+        }
+
         if (!!videoSize) {
             res.send({
-                "status": true,
+                status: true,
                 date_start: videoTimings.date_start,
                 date_end: videoTimings.date_end,
                 file_name: videoTimings.file_name,
-                video_start_from: time - videoTimings.date_start
+                video_start_from
             });
             console.log('<<<<<<<<<<<<<<status: true>>>>>>>>>>>>>>>>')
             return
