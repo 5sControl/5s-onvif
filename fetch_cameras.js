@@ -102,11 +102,8 @@ const runScreenshotMaker = async (cameras, io, IP) => {
                     io.emit('notification', {"message": message, "type": "error"});
                 }
             } else {
-                console.log(cameras[camera].screenshotBuffer, 'screenshotBuffer')
-                console.log(res.buffer, 'res.buffer')
-                if (cameras[camera].screenshotBuffer != res.buffer) {
-                    console.log('emit')
-                    io.emit('snapshot_updated', {"camera_ip": camera});
+                if (cameras[camera].screenshotBuffer != res.buffer && (camera === '192.168.1.110' || camera === '10.20.100.40') ) {
+                    io.emit('snapshot_updated', {"camera_ip": camera, 'screenshot': res.buffer});
                 }
                 cameras[camera].screenshotBuffer = res.buffer;
             }
