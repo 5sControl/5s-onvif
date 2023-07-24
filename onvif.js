@@ -425,6 +425,7 @@ setTimeout(() => {
                 })
             } else {
                 console.log('<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>.', data)
+                io.emit('snapshot_updated', {"camera_ip": IP, 'screenshot': data});
                 screenshot = data;
             }
         });
