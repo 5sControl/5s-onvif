@@ -412,21 +412,26 @@ io.on('connection', (socket) => {
 
 
 // nohup  ffmpeg -stream_loop -1 -re -i express-test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream &
+let counter = 0;
 setTimeout(() => {
     try {
         const stream = new rtsp.FFMpeg({input: uri, rate: 2});
         console.log('stream of ', IP)
         stream.on('data', function (data) {
+            counter++
             if (!screenshot) {
-                console.log(`<<<<<<<<<<<<<<<<save screenshot from ${IP}`)
                 fs.writeFile(`images/${IP}/snapshot.jpg`, data, function (err) {
                     console.log(err, 'stream on data err')
                     screenshot = data;
                 })
             } else {
-                console.log('<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>.', data)
                 io.emit('snapshot_updated', {"camera_ip": IP, 'screenshot': data});
                 screenshot = data;
+            }
+            if (coutner%5 === 0) {
+                fs.writeFile(`images/${IP}/snapshot.jpg`, data, function (err) {
+                    console.log(err, 'stream on data err')
+                })
             }
         });
     } catch (e) {
