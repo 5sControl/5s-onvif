@@ -428,7 +428,7 @@ setTimeout(() => {
                 io.emit('snapshot_updated', {"camera_ip": IP, 'screenshot': data});
                 screenshot = data;
             }
-            if (coutner%5 === 0) {
+            if (counter%5 === 0) {
                 fs.writeFile(`images/${IP}/snapshot.jpg`, data, function (err) {
                     console.log(err, 'stream on data err')
                 })
