@@ -405,12 +405,13 @@ app.get("/video", async function (req, res) {
 io.on('connection', (socket) => {
     console.log('<<<<<<<<<<<<<<<user connection>>>>>>>>>>>>>>>>>>>')
     // socket.emit('camera error', {});
-    socket.on('tasks', (message) => {
-        io.emit('tasks', message);
-    });
     socket.on('disconnect', () => {
         console.log('user disconnected');
     });
+});
+
+io.on('tasks', (message) => {
+        io.emit('tasks', message);
 });
 
 
