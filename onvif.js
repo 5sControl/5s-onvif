@@ -404,16 +404,13 @@ app.get("/video", async function (req, res) {
 });
 io.on('connection', (socket) => {
     console.log('<<<<<<<<<<<<<<<user connection>>>>>>>>>>>>>>>>>>>')
-    // socket.emit('camera error', {});
+    socket.on('tasks', (data) => {
+    socket.broadcast.emit('tasks', data);
+  });
     socket.on('disconnect', () => {
         console.log('user disconnected');
     });
 });
-
-io.on('tasks', (message) => {
-        io.emit('tasks', message);
-});
-
 
 // nohup  ffmpeg -stream_loop -1 -re -i express-test.mp4 -c copy -f rtsp rtsp://192.168.1.110:8554/mystream &
 let counter = 0;
