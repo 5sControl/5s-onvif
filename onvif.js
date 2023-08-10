@@ -405,6 +405,7 @@ app.get("/video", async function (req, res) {
 io.on('connection', (socket) => {
     console.log('<<<<<<<<<<<<<<<user connection>>>>>>>>>>>>>>>>>>>')
     socket.on('tasks', (data) => {
+    console.log('tasks', data)    
     socket.broadcast.emit('tasks', data);
   });
     socket.on('disconnect', () => {
