@@ -402,10 +402,14 @@ app.get("/video", async function (req, res) {
         return
     }
 });
+
+let tasks = {}
 io.on('connection', (socket) => {
     console.log('<<<<<<<<<<<<<<<user connection>>>>>>>>>>>>>>>>>>>')
+    socket.emit('tasks', tasks)
     socket.on('tasks', (data) => {
     console.log('tasks')    
+    tasks = data;     
     socket.broadcast.emit('tasks', data);
   });
     socket.on('disconnect', () => {
