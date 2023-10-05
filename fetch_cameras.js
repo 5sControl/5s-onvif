@@ -183,7 +183,7 @@ const fetchCameras = async (IP, cameras, db, io) => {
     let isDjangoEnable = false;
     try {
         await pause(1000)
-        let fetchedToken = await fetch(`http://${IP}:8000/auth/jwt/create/`, {
+        let fetchedToken = await fetch(`http://${IP}:8000/api/auth/jwt/create/`, {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json;charset=utf-8'
