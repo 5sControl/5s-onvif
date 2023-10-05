@@ -193,9 +193,7 @@ const fetchCameras = async (IP, cameras, db, io) => {
                 "password": "admin"
             })
         })
-        console.log(fetchedToken)
         fetchedToken = await fetchedToken.json()
-        console.log(fetchedToken);
         if (fetchedToken?.access) {
             isDjangoEnable = true
         }
