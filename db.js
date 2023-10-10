@@ -49,7 +49,7 @@ const removeLast500Videos = async (db) => {
                 FROM videos
                 WHERE id IN (SELECT id
                              FROM videos
-                             ORDER BY 'sort_field'
+                             ORDER BY id DESC
                     LIMIT 500
                     );`, (err, rows) => {
             if (err) {
@@ -69,7 +69,7 @@ const getLast500Videos = async (db) => {
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
-                ORDER BY 'sort_field' LIMIT 500`, (err, rows) => {
+                ORDER BY id DESC LIMIT 500`, (err, rows) => {
             if (err) {
                 throw err;
             }
