@@ -45,11 +45,43 @@ The connections between the project repositories are illustrated by the followin
 
 [Installation Guide Pt.2](https://5controls.com/blog/installing-5s-control-software-part-2-docker)
 
+# **Installation**
+Ensure that you have access to cameras that are compatible with the ONVIF protocol.
 
-# **Contributing**
-Thank you for considering contributing to 5controlS. We truly believe that we can build an outstanding product together!
+Connect the cameras to your local network. This allows the application to access and control these cameras.
 
-We welcome a variety of ways to contribute. Read below to learn how you can take part in improving 5controlS.
+To clone the project, use the following Git command:
+
+```shell
+git@github.com:5sControl/5s-onvif.git
+```
+
+ **Install Dependencies:**
+
+Install all project dependencies, run the following command using npm:
+```shell
+npm install
+```
+
+ **Create a .env File:**
+
+In the root directory of your project, create a file named .env. You can do this manually or by using command-line text editors like touch or echo (for Unix-based systems) or any text editor of your choice.
+
+For Unix-based systems using the touch command:
+```shell
+touch .env
+```
+**Environment Variables:**
+
+You can reference an example of the environment variables in the `.env.example` file. Here is how they should be defined:
+
+- `IP`: The address of your host. Example: `'192.168.1.101'`
+
+Make sure to create your `.env` file and define these variables with the appropriate values for your project.
+
+**Running the Application:**
+
+- For start, use the following command: `npm run start`.
 
 ## **Code of conduct**
 
