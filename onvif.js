@@ -33,7 +33,7 @@ const {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos} = re
 const {getFreeSpace, removeFile} = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
 
-let IP = process.env.IP;
+let IP = process.env.DJANGO_SERVICE_URL;
 let cameras = {};
 const db = init();
 const uri = `rtsp://${IP}:8554/mystream`;
