@@ -1,6 +1,6 @@
 const fs = require("fs");
 const init = () => {
-    let IP = process.env.IP
+    let IP = process.env.DJANGO_SERVICE_URL
     if (!IP) {
         IP = '192.168.1.110'
     }
