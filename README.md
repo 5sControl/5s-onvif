@@ -115,3 +115,4 @@ We also have a list of [good first issues](https://github.com/5sControl/5s-onvif
   <a href="https://www.youtube.com/@5scontrol" style="text-decoration:none;">
     <img src="https://github.com/5sControl/Manufacturing-Automatization-Enterprise/blob/ebf176c81fdb62d81b2555cb6228adc074f60be0/assets/youtube%20(1).png" width="5%" alt="" /></a>
 </div>
+<div></div>
