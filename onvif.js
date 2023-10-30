@@ -522,7 +522,7 @@ setInterval(async () => {
             await removeFile(video.file_name)
         }
     }
-}, 3000)
+}, 60000)
 
 server.listen(3456, () => {
     console.log('server started on 3456')
