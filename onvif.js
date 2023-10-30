@@ -511,11 +511,11 @@ setInterval(async () => {
     const freeSpace = await getFreeSpace();
 
     if (freeSpace < settings.gigabyteLimit) {
-        io.emit('notification', {"message": "Low disk space. Old videos will be deleted", "type": "warning"});
-        await sendSystemMessage(IP, {
-            title: "Low disk space",
-            content: "Less than 20% of hard drive space left. Old videos will be deleted"
-        })
+        // io.emit('notification', {"message": "Low disk space. Old videos will be deleted", "type": "warning"});
+        // await sendSystemMessage(IP, {
+        //     title: "Low disk space",
+        //     content: "Less than 20% of hard drive space left. Old videos will be deleted"
+        // })
         const videos = await getLast500Videos(db)
         await removeLast500Videos(db)
         for (video of videos) {
