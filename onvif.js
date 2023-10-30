@@ -29,7 +29,7 @@ const {
     videoRecord,
     returnUpdatedScreenshot
 } = require('./fetch_cameras');
-const {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos} = require('./db.js');
+const {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosBeforeDate} = require('./db.js');
 const {getFreeSpace, removeFile} = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
 
@@ -403,6 +403,41 @@ app.get("/video", async function (req, res) {
     }
 });
 
+app.get("/max_video_storage_time", async function (req, res) {
+    try {
+        const gbPerDayOnOneCamera = 36;
+        const cameraCount = Object.keys(cameras).length;
+        const gbToSaveOneDayForAllCameras = cameraCount * gbPerDayOnOneCamera;
+        const freeSpace = await getFreeSpace();
+
+        res.send({"status": true, result: {maxTime: cameraCount == 0 ? 999 : Math.floor(freeSpace / gbToSaveOneDayForAllCameras)}});
+    } catch (e) {
+        res.send({"status": false, "message": "Get settings error"});
+        return
+    }
+});
+
+app.get("/get_settings", async function (req, res) {
+    try {
+        const settings = await getSettings(db);
+        res.send({"status": true, result: settings});
+    } catch (e) {
+        res.send({"status": false, "message": "Get settings error"});
+        return
+    }
+});
+
+app.post("/edit_settings", async function (req, res) {
+    try {
+        console.log(req.body, 'body')
+        const status = await editSettings(db, req.body);
+        res.send({"status": true, result: status});
+    } catch (e) {
+        res.send({"status": false, "message": "Get settings error"});
+        return
+    }
+});
+
 let tasks = {}
 io.on('connection', (socket) => {
     console.log('<<<<<<<<<<<<<<<user connection>>>>>>>>>>>>>>>>>>>')
@@ -463,8 +498,19 @@ app.use('/onvif-http/snapshot', async function (req, res) {
 });
 
 setInterval(async () => {
+    const settings = await getSettings(db);
+    const now = Date.now();
+    const milisecondsLimit = settings.daysLimit * 24 * 60 * 60 * 1000;
+    const deleteVideosDate = now - milisecondsLimit;
+    const videos = await getVideosBeforeDate(db, deleteVideosDate)
+    await removeVideosBeforeDate(db, deleteVideosDate)
+    for (video of videos) {
+        await removeFile(video.file_name)
+    }
+
     const freeSpace = await getFreeSpace();
-    if (freeSpace < 0.2) {
+
+    if (freeSpace < settings.gigabyteLimit) {
         io.emit('notification', {"message": "Low disk space. Old videos will be deleted", "type": "warning"});
         await sendSystemMessage(IP, {
             title: "Low disk space",
@@ -476,7 +522,7 @@ setInterval(async () => {
             await removeFile(video.file_name)
         }
     }
-}, 60000)
+}, 3000)
 
 server.listen(3456, () => {
     console.log('server started on 3456')
