@@ -410,7 +410,7 @@ app.get("/max_video_storage_time", async function (req, res) {
         const gbToSaveOneDayForAllCameras = cameraCount * gbPerDayOnOneCamera;
         const freeSpace = await getFreeSpace();
 
-        res.send({"status": true, result: {maxTime: cameraCount == 0 ? 999 : Math.floor(freeSpace / gbToSaveOneDayForAllCameras)}});
+        res.send({"status": true, result: {maxDays: cameraCount == 0 ? 999 : Math.floor(freeSpace / gbToSaveOneDayForAllCameras)}});
     } catch (e) {
         res.send({"status": false, "message": "Get settings error"});
         return
