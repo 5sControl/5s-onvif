@@ -133,7 +133,6 @@ const getSettings = async (db) => {
             if (rows[0]) {
                 resolve({daysLimit: rows[0].daysLimit, gigabyteLimit: rows[0].gigabyteLimit})
             } else {
-                console.log('asdasd')
                 reject('Row not found')
             }
 
