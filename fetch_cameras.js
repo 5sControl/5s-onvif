@@ -192,6 +192,12 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
             }
 
         });
+
+        ffmpeg.stdout.on('data', (data) => {
+        });
+
+        ffmpeg.stderr.on('data', (data) => {
+        });
     } catch (e) {
         console.log(e, 'videoRecord error')
     }
