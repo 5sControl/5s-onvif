@@ -4,7 +4,7 @@
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-**[5controlS](https://5controls.com/)** is an open source AI-powered manufacturing operations platform that helps companies improve productivity, eliminate waste, and enhance workplace safety using computer vision (CV) and machine learning (ML). 
+**[5controlS](https://5controls.com/)** is a video monitoring system with AI analysis and ERP Integration (Open Source) that helps companies improve productivity, eliminate waste, and enhance workplace safety using computer vision (CV) and machine learning (ML). 
 
 The platform generates detailed reports to provide insights on how processes can be optimized.
 
@@ -115,5 +115,4 @@ We also have a list of [good first issues](https://github.com/5sControl/5s-onvif
   <a href="https://www.youtube.com/@5scontrol" style="text-decoration:none;">
     <img src="https://github.com/5sControl/Manufacturing-Automatization-Enterprise/blob/ebf176c81fdb62d81b2555cb6228adc074f60be0/assets/youtube%20(1).png" width="5%" alt="" /></a>
 </div>
-<div>
-</div>
+<div></div>
