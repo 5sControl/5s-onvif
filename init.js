@@ -29,6 +29,40 @@ const init = () => {
             TEXT
         )
     `);
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS settings
+        (
+            id
+            INTEGER
+            PRIMARY
+            KEY,
+            daysLimit
+            int,
+            gigabyteLimit
+            int
+        )
+    `);
+
+    db.get("SELECT COUNT(*) AS count FROM settings", (err, row) => {
+    if (err) {
+        console.error(err.message);
+    } else {
+        if (row.count === 0) {
+            // Table is empty, so we can insert a record
+            db.run(`INSERT INTO settings (daysLimit, gigabyteLimit) VALUES (?, ?)`, [3, 100], function(err) {
+                if (err) {
+                    console.error(err.message);
+                } else {
+                    console.log(`A new record has been added with ID ${this.lastID}`);
+                }
+            });
+        } else {
+            console.log("Table is not empty. No record added.");
+        }
+    }
+});
+
     return db;
 }
 

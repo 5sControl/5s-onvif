@@ -14,6 +14,10 @@ if (!IP) {
     IP = '192.168.1.150'
 }
 
+const cameraErrors = {}
+setInterval(() => {
+    console.log(cameraErrors, 'cameraErrors')
+}, 10000)
 function arrayBufferToBuffer(arrayBuffer) {
     if (arrayBuffer?.byteLength == 0) {
         console.log(arrayBuffer?.byteLength, 'arrayBuffer.byteLength')
@@ -68,6 +72,10 @@ const screenshotUpdate = async (url, client, ip) => {
         return {success: true, buffer}
     } catch (e) {
         console.log(`camera ip: ${ip}`, 'screenshotUpdate error')
+        if (!cameraErrors[ip]) {
+            cameraErrors[ip] = 1;
+        }
+        cameraErrors[ip] += 1
         return {success: false, error: "Error"}
     }
 }
@@ -144,6 +152,10 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
             if (!isProcessKilled) {
                 ffmpeg.kill()
                 isProcessKilled = true;
+                if (!cameraErrors[camera_ip]) {
+                cameraErrors[camera_ip] = 1;
+                }
+                cameraErrors[camera_ip] += 1
                 console.log(`Video not recorded, please check connection to ${camera_ip} camera, timeout`)
                 videoRecord(rtspUrl, camera_ip, db)
             }
@@ -155,11 +167,19 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
         ffmpeg.on('exit', async () => {
             if (isProcessKilled) {
                 console.log(`Video not recorded, please check connection to ${camera_ip} camera, killed`)
+                if (!cameraErrors[camera_ip]) {
+                cameraErrors[camera_ip] = 1;
+                }
+                cameraErrors[camera_ip] += 1
                 return
             }
             console.log('<<<EXIT>>>')
             isProcessKilled = true
             if ((Date.now() - now) < 1000 * 60) {
+                if (!cameraErrors[camera_ip]) {
+                cameraErrors[camera_ip] = 1;
+                }
+                cameraErrors[camera_ip] += 1
                 console.log(`Video not recorded, please check connection to ${camera_ip} camera`)
                 await pause(30000)
                 videoRecord(rtspUrl, camera_ip, db)

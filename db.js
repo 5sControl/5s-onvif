@@ -84,6 +84,86 @@ const getLast500Videos = async (db) => {
     });
 }
 
+const getVideosBeforeDate = async (db, date) => {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT *
+                FROM videos
+                where date_start < ${date}`, (err, rows) => {
+            if (err) {
+                throw err;
+            }
+            console.log(rows, 'rows to remove')
+            if (rows) {
+                resolve(rows)
+            } else {
+                reject('Row not found')
+            }
+
+        });
+    });
+}
+
+const removeVideosBeforeDate = async (db, date) => {
+    return new Promise((resolve, reject) => {
+        db.all(`DELETE
+                FROM videos
+                where date_start < ${date}`, (err, rows) => {
+            if (err) {
+                throw err;
+            }
+            console.log(rows, 'rows to remove')
+            if (rows) {
+                resolve(rows)
+            } else {
+                reject('Row not found')
+            }
+
+        });
+    });
+}
+
+const getSettings = async (db) => {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT *
+                FROM SETTINGS`, (err, rows) => {
+            if (err) {
+                console.log(err,' eerrr')
+                throw err;
+            }
+            if (rows[0]) {
+                resolve({daysLimit: rows[0].daysLimit, gigabyteLimit: rows[0].gigabyteLimit})
+            } else {
+                reject('Row not found')
+            }
+
+        });
+    });
+}
+
+const editSettings = async (db, settings) => {
+    return new Promise((resolve, reject) => {
+
+        const { daysLimit, gigabyteLimit } = settings;
+
+        // Use an UPDATE statement to modify the existing row in the SETTINGS table
+        db.run(`UPDATE SETTINGS
+                SET daysLimit = ?,
+                    gigabyteLimit = ?`, [daysLimit, gigabyteLimit], function(err) {
+            if (err) {
+                console.log(err.message, 'errr')
+                reject(err.message);
+            } else {
+                if (this.changes > 0) {
+                    resolve({ daysLimit, gigabyteLimit });
+                } else {
+                    reject('Row not found');
+                }
+            }
+        });
+    });
+}
 
 
-module.exports = {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos}
+
+
+module.exports = {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosBeforeDate}
