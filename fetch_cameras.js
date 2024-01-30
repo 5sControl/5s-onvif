@@ -203,7 +203,7 @@ const fetchCameras = async (IP, cameras, db, io) => {
         if (fetchedToken?.access) {
             isDjangoEnable = true
         }
-        let fetchedCameras = await fetch(`http://${IP}:8000/api/camera-algorithms/camera/`, {
+        let fetchedCameras = await fetch(`http://${IP}:8000/api/camera-algorithms/camera-for-onvif/`, {
             method: "GET",
             headers: {
                 'Content-Type': 'application/json;charset=utf-8',
