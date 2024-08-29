@@ -104,12 +104,13 @@ const getVideosBeforeDate = async (db, date) => {
 }
 
 const removeVideosByIds = async (db, ids) =>{
-    const videos = ids.join(', ');
+    const placeholders = ids.map(() => '?').join(',');
+
 
     return new Promise((resolve, reject) => {
         db.all(`DELETE
                 FROM videos
-                WHERE id IN (?);`, videos, (err, rows) => {
+                WHERE id IN (${placeholders});`, ids, (err, rows) => {
             if (err) {
                 throw err;
             }
