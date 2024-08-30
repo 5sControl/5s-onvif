@@ -503,9 +503,8 @@ setInterval(async () => {
         const now = Date.now();
         const milisecondsLimit = settings.daysLimit * 24 * 60 * 60 * 1000;
         const deleteVideosDate = now - milisecondsLimit;
-        const videos = await getVideosBeforeDate(db, deleteVideosDate)
-        const videoIds = videos.map((id) =>id);
-        await removeVideosByIds(db, videoIds);
+        const videos = await getVideosBeforeDate(db, deleteVideosDate);
+        await removeVideosByIds(db, videos.map((video) =>video.id));
         for (const video of videos) {
             await removeFile(video.file_name)
         }
@@ -519,8 +518,7 @@ setInterval(async () => {
             //     content: "Less than 20% of hard drive space left. Old videos will be deleted"
             // })
             const videos = await getLast500Videos(db);
-            const videoIds = videos.map((id) =>id);
-            await removeVideosByIds(db, videoIds);
+            await removeVideosByIds(db,videos.map((video) =>video.id));
             for (const video of videos) {
                 await removeFile(video.file_name)
             }
