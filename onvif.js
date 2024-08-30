@@ -498,29 +498,34 @@ app.use('/onvif-http/snapshot', async function (req, res) {
 });
 
 setInterval(async () => {
-    const settings = await getSettings(db);
-    const now = Date.now();
-    const milisecondsLimit = settings.daysLimit * 24 * 60 * 60 * 1000;
-    const deleteVideosDate = now - milisecondsLimit;
-    const videos = await getVideosBeforeDate(db, deleteVideosDate)
-    await removeVideosByIds(db, videos.map((id) =>id) )
-    for (const video of videos) {
-        await removeFile(video.file_name)
-    }
-
-    const freeSpace = await getFreeSpace();
-
-    if (freeSpace < settings.gigabyteLimit) {
-        // io.emit('notification', {"message": "Low disk space. Old videos will be deleted", "type": "warning"});
-        // await sendSystemMessage(IP, {
-        //     title: "Low disk space",
-        //     content: "Less than 20% of hard drive space left. Old videos will be deleted"
-        // })
-        const videos = await getLast500Videos(db)
+    try{
+        const settings = await getSettings(db);
+        const now = Date.now();
+        const milisecondsLimit = settings.daysLimit * 24 * 60 * 60 * 1000;
+        const deleteVideosDate = now - milisecondsLimit;
+        const videos = await getVideosBeforeDate(db, deleteVideosDate)
         await removeVideosByIds(db, videos.map((id) =>id) )
         for (const video of videos) {
             await removeFile(video.file_name)
         }
+
+        const freeSpace = await getFreeSpace();
+
+        if (freeSpace < settings.gigabyteLimit) {
+            // io.emit('notification', {"message": "Low disk space. Old videos will be deleted", "type": "warning"});
+            // await sendSystemMessage(IP, {
+            //     title: "Low disk space",
+            //     content: "Less than 20% of hard drive space left. Old videos will be deleted"
+            // })
+            const videos = await getLast500Videos(db)
+            await removeVideosByIds(db, videos.map((id) =>id) )
+            for (const video of videos) {
+                await removeFile(video.file_name)
+            }
+        }
+    }
+    catch (e){
+        console.log(e)
     }
 }, 60000)
 
