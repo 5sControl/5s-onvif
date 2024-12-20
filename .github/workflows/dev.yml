@@ -6,7 +6,7 @@ on:
 
 jobs:
   Build:
-    runs-on: self-hosted
+    runs-on: self-hosted-dev
 
     steps:
       - uses: actions/checkout@main
