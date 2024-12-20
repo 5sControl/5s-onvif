@@ -36,11 +36,9 @@ async function pause(milliseconds) {
 
 const screenshotUpdate = async (username, password, ip) => {
     try {
-        console.log(`Updating snaphpot for camera IP: ${ip}`);
         const snapshotUrlData = await captureSnapshot(username, password, ip);
 
         if (snapshotUrlData.url) {
-            console.log(`snaphpot is updated for camera ${ip}: ${snapshotUrlData.url}`);
             const snapshotPath = path.join('images', ip, 'snapshot.jpg');
             const buffer = await fsPromise.readFile(snapshotPath);
 

@@ -22,11 +22,7 @@ const captureSnapshot = async (username, password, cameraIp) => {
                 .inputOptions('-rtsp_transport tcp')
                 .outputOptions(['-vframes 1', '-f image2'])
                 .save(outputPath)
-                .on('start', (commandLine) => {
-                    console.log(`FFmpeg process started: ${commandLine}`);
-                })
                 .on('end', () => {
-                    console.log(`Snapshot saved successfully at: ${outputPath}`);
                     const snapshotUrl = `http://localhost:3456/var/www/5scontrol/images/${cameraIp}/screenshot.jpg`;
                     resolve({ url: snapshotUrl });
                 })
