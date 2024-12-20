@@ -6,5 +6,7 @@ COPY package.json .
 RUN npm i
 COPY . .
 RUN mkdir -p /var/www/5scontrol/images
+ENV IMAGES_DIR=/var/www/5scontrol/images
+ENV BASE_URL=http://localhost:3456
 
 ENTRYPOINT ["node", "onvif.js"]
