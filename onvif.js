@@ -9,10 +9,10 @@ const Cam = require('onvif').Cam;
 const {spawn} = require("child_process");
 const rtsp = require("rtsp-ffmpeg");
 const fsPromise = require('fs').promises;
-
 const {Server} = require("socket.io");
 const http = require('http');
 const server = http.createServer(app);
+const captureSnapshot = require('./capture-snapshot')
 const io = require("socket.io")(server, {
     cors: {
         origin: "*",
@@ -21,7 +21,6 @@ const io = require("socket.io")(server, {
 
 const init = require('./init')
 const {
-    getScreenshotUrl,
     pause,
     fetchCameras,
     screenshotUpdate,
@@ -32,6 +31,7 @@ const {
 const {getFilePath, getVideoTimings,  getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosByIds} = require('./db.js');
 const {getFreeSpace, removeFile} = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
+require('dotenv').config();
 
 let IP = process.env.DJANGO_SERVICE_URL;
 let cameras = {};
@@ -61,19 +61,12 @@ app.post('/add_camera', async function (req, res) {
         });
         return
     }
-    if (!fs.existsSync('images/' + ip)) {
-        fs.mkdirSync('images/' + ip);
-        console.log(`${'images/' + ip} created successfully!`);
-    } else {
-        console.log(`${'images/' + ip} already exists!`);
-    }
 
     try {
-        const screenshotUrlData = await getScreenshotUrl(username, password, ip)
-        console.log(456, screenshotUrlData)
+        const screenshotUrlData = await captureSnapshot(username, password, ip)
         if (screenshotUrlData.url) {
             const client = new DigestFetch(username, password)
-            const screenshotUpdated = await screenshotUpdate(screenshotUrlData.url, client, ip)
+            const screenshotUpdated = await screenshotUpdate(username, password, ip)
             if (!screenshotUpdated.success) {
                 res.send({"status": false, "message": "Screenshot wasn`t created", "result": false});
                 return
@@ -95,11 +88,12 @@ app.post('/add_camera', async function (req, res) {
         res.send({"status": false, "message": "Screenshot url not found", "result": false});
         return
     }
-    res.send({"status": true});
 });
 
 app.post('/check_camera', async function (req, res) {
     const {ip, username, password} = req.body;
+    console.log(ip, username, password, '/check_camera');
+    
     if (!ip || !username || !password) {
         res.send({"status": false, "message": "Required fields not found"});
         return
@@ -111,43 +105,26 @@ app.post('/check_camera', async function (req, res) {
         return
     }
 
-    if (!fs.existsSync('images/' + ip)) {
-        fs.mkdirSync('images/' + ip);
-        console.log(`${'images/' + ip} created successfully!`);
-    } else {
-        console.log(`${'images/' + ip} already exists!`);
-    }
 
     try {
-        const screenshotUrlData = await getScreenshotUrl(username, password, ip)
-        console.log(104, screenshotUrlData)
-        if (screenshotUrlData.url) {
-            const client = new DigestFetch(username, password)
-            const screenshotUpdated = await returnUpdatedScreenshot(screenshotUrlData.url, client, ip)
-            if (!screenshotUpdated.success) {
-                res.send({"status": false, "message": "Camera not available"});
-                return
-            }
+        const snapshotUrlData = await captureSnapshot(username, password, ip)
+        if (snapshotUrlData.url) {
+            const snapshotPath = path.resolve(__dirname, 'images', ip, 'snapshot.jpg');
+            const snapshotBuffer = await fsPromise.readFile(snapshotPath);
 
-            if (screenshotUpdated.screenshot) {
-                res.set('Content-Type', 'application/octet-stream');
-                res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
-                res.send({"status": true, "image": screenshotUpdated.screenshot});
-                return
-            }
-
+            res.set('Content-Type', 'application/octet-stream');
+            res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
+            res.send({"status": true, "image": snapshotBuffer});
+            return
         } else {
             res.send({"status": false, "message": "Camera not found"});
             return
         }
-        res.send({"status": false, "message": "Camera not found"});
-        return
     } catch (e) {
         console.log(e, 'e')
         res.send({"status": false, "message": "Camera not found"});
         return
     }
-    res.send({"status": false, "message": "Camera not found"});
 });
 
 app.post('/get_stream_url', function (req, res) {
