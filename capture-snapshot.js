@@ -27,7 +27,7 @@ const captureSnapshot = async (username, password, cameraIp) => {
                 })
                 .on('end', () => {
                     console.log(`Snapshot saved successfully at: ${outputPath}`);
-                    const snapshotUrl = `http://localhost:3456/var/www/5scontrol/images/${camera_ip}/screenshot.jpg`;
+                    const snapshotUrl = `http://localhost:3456/var/www/5scontrol/images/${cameraIp}/screenshot.jpg`;
                     resolve({ url: snapshotUrl });
                 })
                 .on('error', (err, stdout, stderr) => {
