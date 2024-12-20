@@ -13,6 +13,7 @@ const {Server} = require("socket.io");
 const http = require('http');
 const server = http.createServer(app);
 const captureSnapshot = require('./capture-snapshot')
+const path = require('path');
 const io = require("socket.io")(server, {
     cors: {
         origin: "*",
@@ -32,6 +33,7 @@ const {getFilePath, getVideoTimings,  getLast500Videos, getSettings, editSetting
 const {getFreeSpace, removeFile} = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
 require('dotenv').config();
+const cameraRoutes = require('./routes/camera');
 
 let IP = process.env.DJANGO_SERVICE_URL;
 let cameras = {};
@@ -46,6 +48,7 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cors());
 app.use(morgan('dev'));
+app.use('', cameraRoutes);
 
 app.post('/add_camera', async function (req, res) {
     const {ip, username, password} = req.body;
@@ -86,43 +89,6 @@ app.post('/add_camera', async function (req, res) {
     } catch (e) {
         console.log(e, 'e')
         res.send({"status": false, "message": "Screenshot url not found", "result": false});
-        return
-    }
-});
-
-app.post('/check_camera', async function (req, res) {
-    const {ip, username, password} = req.body;
-    console.log(ip, username, password, '/check_camera');
-    
-    if (!ip || !username || !password) {
-        res.send({"status": false, "message": "Required fields not found"});
-        return
-    }
-    if (isItEmulatedCamera(IP, ip)) {
-        res.set('Content-Type', 'application/octet-stream');
-        res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
-        res.send(screenshot);
-        return
-    }
-
-
-    try {
-        const snapshotUrlData = await captureSnapshot(username, password, ip)
-        if (snapshotUrlData.url) {
-            const snapshotPath = path.resolve(__dirname, 'images', ip, 'snapshot.jpg');
-            const snapshotBuffer = await fsPromise.readFile(snapshotPath);
-
-            res.set('Content-Type', 'application/octet-stream');
-            res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
-            res.send({"status": true, "image": snapshotBuffer});
-            return
-        } else {
-            res.send({"status": false, "message": "Camera not found"});
-            return
-        }
-    } catch (e) {
-        console.log(e, 'e')
-        res.send({"status": false, "message": "Camera not found"});
         return
     }
 });
