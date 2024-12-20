@@ -103,6 +103,19 @@ const getVideosBeforeDate = async (db, date) => {
     });
 }
 
+const removeVideosByIds = async (db, ids) =>{
+    try{
+        const placeholders = ids.map(() => '?').join(',');
+        return db.run(`DELETE
+                FROM videos
+                WHERE id IN (${placeholders});`, ids)
+    }
+    catch(e){
+        console.log(e)
+        throw new Error('Rows have not deleted')
+    }
+}
+
 const removeVideosBeforeDate = async (db, date) => {
     return new Promise((resolve, reject) => {
         db.all(`DELETE
@@ -166,4 +179,4 @@ const editSettings = async (db, settings) => {
 
 
 
-module.exports = {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosBeforeDate}
+module.exports = {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosBeforeDate, removeVideosByIds}

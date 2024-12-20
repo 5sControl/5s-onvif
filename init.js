@@ -1,15 +1,20 @@
-const fs = require("fs");
-const init = () => {
-    let IP = process.env.DJANGO_SERVICE_URL
-    if (!IP) {
-        IP = '192.168.1.110'
-    }
-    if (!fs.existsSync('images/' + IP)) {
-        fs.mkdirSync('images/' + IP);
-        console.log(`${'images/' + IP} created successfully! local`);
-    } else {
-        console.log(`${'images/' + IP} already exists! local`);
-    }
+const { mkdir } = require('fs').promises;
+const path = require("path");
+const init = async () => {
+    let IP = process.env.DJANGO_SERVICE_URL || '192.168.1.110';
+    const dirPath = path.join('images', IP);
+
+    // try {
+    //     mkdir(dirPath, { recursive: true });
+    //     console.log(`${dirPath} created successfully!`);
+    // } catch (err) {
+    //     if (err.code === 'EEXIST') {
+    //         console.log(`${dirPath} already exists!`);
+    //     } else {
+    //         console.error(`Error create dir: ${err.message}`);
+    //     }
+    // }
+
     const sqlite3 = require('sqlite3').verbose();
     const db = new sqlite3.Database('database/video.sqlite3');
     db.run(`

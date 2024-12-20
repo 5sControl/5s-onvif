@@ -9,10 +9,11 @@ const Cam = require('onvif').Cam;
 const {spawn} = require("child_process");
 const rtsp = require("rtsp-ffmpeg");
 const fsPromise = require('fs').promises;
-
 const {Server} = require("socket.io");
 const http = require('http');
 const server = http.createServer(app);
+const captureSnapshot = require('./capture-snapshot')
+const path = require('path');
 const io = require("socket.io")(server, {
     cors: {
         origin: "*",
@@ -21,7 +22,6 @@ const io = require("socket.io")(server, {
 
 const init = require('./init')
 const {
-    getScreenshotUrl,
     pause,
     fetchCameras,
     screenshotUpdate,
@@ -29,9 +29,11 @@ const {
     videoRecord,
     returnUpdatedScreenshot
 } = require('./fetch_cameras');
-const {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosBeforeDate} = require('./db.js');
+const {getFilePath, getVideoTimings,  getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosByIds} = require('./db.js');
 const {getFreeSpace, removeFile} = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
+require('dotenv').config();
+const cameraRoutes = require('./routes/camera');
 
 let IP = process.env.DJANGO_SERVICE_URL;
 let cameras = {};
@@ -46,6 +48,7 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cors());
 app.use(morgan('dev'));
+app.use('', cameraRoutes);
 
 app.post('/add_camera', async function (req, res) {
     const {ip, username, password} = req.body;
@@ -61,19 +64,12 @@ app.post('/add_camera', async function (req, res) {
         });
         return
     }
-    if (!fs.existsSync('images/' + ip)) {
-        fs.mkdirSync('images/' + ip);
-        console.log(`${'images/' + ip} created successfully!`);
-    } else {
-        console.log(`${'images/' + ip} already exists!`);
-    }
 
     try {
-        const screenshotUrlData = await getScreenshotUrl(username, password, ip)
-        console.log(456, screenshotUrlData)
+        const screenshotUrlData = await captureSnapshot(username, password, ip)
         if (screenshotUrlData.url) {
             const client = new DigestFetch(username, password)
-            const screenshotUpdated = await screenshotUpdate(screenshotUrlData.url, client, ip)
+            const screenshotUpdated = await screenshotUpdate(username, password, ip)
             if (!screenshotUpdated.success) {
                 res.send({"status": false, "message": "Screenshot wasn`t created", "result": false});
                 return
@@ -95,59 +91,6 @@ app.post('/add_camera', async function (req, res) {
         res.send({"status": false, "message": "Screenshot url not found", "result": false});
         return
     }
-    res.send({"status": true});
-});
-
-app.post('/check_camera', async function (req, res) {
-    const {ip, username, password} = req.body;
-    if (!ip || !username || !password) {
-        res.send({"status": false, "message": "Required fields not found"});
-        return
-    }
-    if (isItEmulatedCamera(IP, ip)) {
-        res.set('Content-Type', 'application/octet-stream');
-        res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
-        res.send(screenshot);
-        return
-    }
-
-    if (!fs.existsSync('images/' + ip)) {
-        fs.mkdirSync('images/' + ip);
-        console.log(`${'images/' + ip} created successfully!`);
-    } else {
-        console.log(`${'images/' + ip} already exists!`);
-    }
-
-    try {
-        const screenshotUrlData = await getScreenshotUrl(username, password, ip)
-        console.log(104, screenshotUrlData)
-        if (screenshotUrlData.url) {
-            const client = new DigestFetch(username, password)
-            const screenshotUpdated = await returnUpdatedScreenshot(screenshotUrlData.url, client, ip)
-            if (!screenshotUpdated.success) {
-                res.send({"status": false, "message": "Camera not available"});
-                return
-            }
-
-            if (screenshotUpdated.screenshot) {
-                res.set('Content-Type', 'application/octet-stream');
-                res.set('Content-Disposition', 'attachment; filename="snapshot.jpg"');
-                res.send({"status": true, "image": screenshotUpdated.screenshot});
-                return
-            }
-
-        } else {
-            res.send({"status": false, "message": "Camera not found"});
-            return
-        }
-        res.send({"status": false, "message": "Camera not found"});
-        return
-    } catch (e) {
-        console.log(e, 'e')
-        res.send({"status": false, "message": "Camera not found"});
-        return
-    }
-    res.send({"status": false, "message": "Camera not found"});
 });
 
 app.post('/get_stream_url', function (req, res) {
@@ -498,29 +441,34 @@ app.use('/onvif-http/snapshot', async function (req, res) {
 });
 
 setInterval(async () => {
-    const settings = await getSettings(db);
-    const now = Date.now();
-    const milisecondsLimit = settings.daysLimit * 24 * 60 * 60 * 1000;
-    const deleteVideosDate = now - milisecondsLimit;
-    const videos = await getVideosBeforeDate(db, deleteVideosDate)
-    await removeVideosBeforeDate(db, deleteVideosDate)
-    for (video of videos) {
-        await removeFile(video.file_name)
-    }
-
-    const freeSpace = await getFreeSpace();
-
-    if (freeSpace < settings.gigabyteLimit) {
-        // io.emit('notification', {"message": "Low disk space. Old videos will be deleted", "type": "warning"});
-        // await sendSystemMessage(IP, {
-        //     title: "Low disk space",
-        //     content: "Less than 20% of hard drive space left. Old videos will be deleted"
-        // })
-        const videos = await getLast500Videos(db)
-        await removeLast500Videos(db)
-        for (video of videos) {
+    try{
+        const settings = await getSettings(db);
+        const now = Date.now();
+        const milisecondsLimit = settings.daysLimit * 24 * 60 * 60 * 1000;
+        const deleteVideosDate = now - milisecondsLimit;
+        const videos = await getVideosBeforeDate(db, deleteVideosDate);
+        await removeVideosByIds(db, videos.map((video) =>video.id));
+        for (const video of videos) {
             await removeFile(video.file_name)
         }
+
+        const freeSpace = await getFreeSpace();
+
+        if (freeSpace < settings.gigabyteLimit) {
+            // io.emit('notification', {"message": "Low disk space. Old videos will be deleted", "type": "warning"});
+            // await sendSystemMessage(IP, {
+            //     title: "Low disk space",
+            //     content: "Less than 20% of hard drive space left. Old videos will be deleted"
+            // })
+            const videos = await getLast500Videos(db);
+            await removeVideosByIds(db,videos.map((video) =>video.id));
+            for (const video of videos) {
+                await removeFile(video.file_name)
+            }
+        }
+    }
+    catch (e){
+        console.log(e)
     }
 }, 60000)
 
