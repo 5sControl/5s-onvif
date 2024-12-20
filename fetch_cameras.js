@@ -1,11 +1,13 @@
-const {Cam} = require("onvif");
 const DigestFetch = require("./digest-fetch");
 const fs = require("fs");
+const fsPromise = require("fs").promises;
 const moment = require("moment/moment");
 const {spawn} = require("child_process");
 const {CameraErrorHandler} = require("./camera_error_handler")
 const cameraErrorHandler = new CameraErrorHandler()
 const {sendSystemMessage} = require('./system-messages')
+const path = require('path');
+const captureSnapshot = require('./capture-snapshot')
 const isItEmulatedCamera = (serverIp, cameraIp) => {
     return cameraIp.indexOf(serverIp) !== -1;
 }
@@ -28,55 +30,36 @@ function arrayBufferToBuffer(arrayBuffer) {
     return buffer
 }
 
-const getScreenshotUrl = async (username, password, camera_ip) => {
-    if (username && password && camera_ip) {
-        return new Promise((resolve, reject) => {
-            new Cam({
-                hostname: camera_ip,
-                username: username,
-                password: password,
-                port: 80
-            }, function (err) {
-                console.log(err, 'new Cam err')
-                if (err) {
-                    resolve({"error": 'Auth error'})
-                } else {
-                    this.getSnapshotUri({protocol: 'RTSP'}, function (err, stream) {
-                        if (err) {
-                            console.log(err, 'getSnapshotUri err')
-                            resolve({"error": err})
-                            return
-                        }
-                        const url_end = stream.uri.substring(7, stream.uri.length)
-                        const url = 'http://' + url_end;
-                        resolve({"url": url})
-                    });
-                }
-            });
-        });
-    }
-}
-
 async function pause(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-const screenshotUpdate = async (url, client, ip) => {
+const screenshotUpdate = async (username, password, ip) => {
     try {
-        const response = await client.fetch(url)
-        const arrayBuffer = await response.arrayBuffer()
-        const buffer = arrayBufferToBuffer(arrayBuffer)
-        fs.writeFile(`images/${ip}/snapshot.jpg`, buffer, err => {
-            if (err) console.log(err)
-        })
-        return {success: true, buffer}
+        console.log(`Updating snaphpot for camera IP: ${ip}`);
+        const snapshotUrlData = await captureSnapshot(username, password, ip);
+
+        if (snapshotUrlData.url) {
+            console.log(`snaphpot is updated for camera ${ip}: ${snapshotUrlData.url}`);
+            const snapshotPath = path.join('images', ip, 'snapshot.jpg');
+            const buffer = await fsPromise.readFile(snapshotPath);
+
+            return { success: true, buffer };
+        } else {
+            console.error(`snaphpot is not updated for camera ${ip}: ${snapshotUrlData.error}`);
+            if (!cameraErrors[ip]) {
+                cameraErrors[ip] = 1;
+            }
+            cameraErrors[ip] += 1;
+            return { success: false, error: snapshotUrlData.error };
+        }
     } catch (e) {
-        console.log(`camera ip: ${ip}`, 'screenshotUpdate error')
+        console.error(`camera ip: ${ip}`, 'screenshotUpdate error:', e);
         if (!cameraErrors[ip]) {
             cameraErrors[ip] = 1;
         }
-        cameraErrors[ip] += 1
-        return {success: false, error: "Error"}
+        cameraErrors[ip] += 1;
+        return { success: false, error: "Error" };
     }
 }
 
@@ -92,15 +75,12 @@ const returnUpdatedScreenshot = async (url, client) => {
     }
 }
 
-const runScreenshotMaker = async (cameras, io, IP) => {
-    for (const camera in cameras) {
-        await screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
-    }
-
+const runScreenshotMaker = async (cameras, io, IP) => { 
     setInterval(async () => {
         for (const camera in cameras) {
-            const res = await screenshotUpdate(cameras[camera].url, cameras[camera].client, camera)
+            const res = await screenshotUpdate(cameras[camera].client.user, cameras[camera].client.password, camera)
             const message = cameraErrorHandler.add(camera, !res.success)
+
             if (!res.success) {
                 if (message) {
                     await sendSystemMessage(IP, {
@@ -237,12 +217,11 @@ const fetchCameras = async (IP, cameras, db, io) => {
                 continue
             }
             if (!cameras[id]) {
-                const screenshot_url_data = await getScreenshotUrl(username, password, id)
-                console.log(screenshot_url_data, 'screenshot_url_data')
-                if (screenshot_url_data.url) {
+                const snapshotUrlData = await captureSnapshot(username, password, id)
+                if (snapshotUrlData.url) {
                     const stream_url = `rtsp://${username}:${password}@${id}/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
                     cameras[camera.id] = {
-                        url: screenshot_url_data.url,
+                        url: snapshotUrlData.url,
                         client: new DigestFetch(username, password),
                         stream_url,
                         screenshotBuffer: null
@@ -274,7 +253,6 @@ const fetchCameras = async (IP, cameras, db, io) => {
 }
 
 module.exports = {
-    getScreenshotUrl,
     pause,
     fetchCameras,
     screenshotUpdate,
