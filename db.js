@@ -22,29 +22,31 @@ const getFilePath = async (time, camera_ip, db) => {
 }
 
 const getVideoTimings = async (time, camera_ip, db) => {
-    const date = time;
-    console.log(date, 'date')
-    console.log(camera_ip, 'camera_ip')
-    console.log(db, 2);
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT *
-                FROM videos
-                where date_start < ${date}
-                  and date_end > ${date}
-                  and camera_ip = '${camera_ip}'`, (err, rows) => {
-            if (err) {
-                throw err;
-            }
-            console.log(rows, 'rows')
-            if (rows[0]) {
-                resolve({date_start: rows[0].date_start, date_end: rows[0].date_end, file_name: rows[0].file_name})
-            } else {
-                reject('Row not found')
-            }
+    try {
+        console.log(`Received: time=${time}, camera_ip=${camera_ip}`);
 
-        });
-    });
-}
+        const query = `
+            SELECT *
+            FROM videos
+            WHERE date_start < ?
+              AND date_end > ?
+              AND camera_ip = ?
+        `;
+        const rows = await db.all(query, [time, time, camera_ip]);
+
+        console.log(`Query result: ${JSON.stringify(rows)}`);
+
+        if (rows.length > 0) {
+            const { date_start, date_end, file_name } = rows[0];
+            return { date_start, date_end, file_name };
+        } else {
+            throw new Error('No matching video found');
+        }
+    } catch (err) {
+        console.error('Error in getVideoTimings:', err.message);
+        throw err;
+    }
+};
 
 const removeLast500Videos = async (db) => {
     console.log(db, 3);

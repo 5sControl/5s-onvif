@@ -215,57 +215,41 @@ app.use('', cameraRoutes);
     
     app.use("/is_video_available", async function (req, res) {
         try {
-            let {time, camera_ip} = req.body;
-            if (!time) {
-                time = req.query.time;
-                camera_ip = req.query.camera_ip;
-            }
-            console.log(time, camera_ip, 'time and camera_ip')
+            const time = req.body.time || req.query.time;
+            const camera_ip = req.body.camera_ip || req.query.camera_ip;
     
             if (!time || !camera_ip) {
                 res.status(400).send({status: false, message: "Requires time field"});
                 return
             }
+
+            const videoTimings = await getVideoTimings(time, camera_ip, db);
+            console.log(`Video timings: ${JSON.stringify(videoTimings)}`);
+
+            const videoStats = await fs.promises.stat(videoTimings.file_name);
+            const videoSize = videoStats.size;
+            console.log(`Video size: ${videoSize} bytes`);
     
-            let videoTimings;
-            if (time === 'test') {
-                videoTimings = 'videos/2023-03-24_16-12-16-14-192.168.1.166.mp4'
-            } else {
-                videoTimings = await getVideoTimings(time, camera_ip, db)
-            }
-    
-            console.log(videoTimings, 'videoP323233ath dsdasadcasd222adasd')
-            const videoSize = fs.statSync(videoTimings.file_name).size;
-            console.log(videoSize, 'videoSize')
             const rollBackTime = 10 * 1000;
             let video_start_from = time - videoTimings.date_start;
-            if (video_start_from > rollBackTime) {
-                video_start_from -= rollBackTime
-            } else {
-                video_start_from = 0
-            }
-    
-            if (!!videoSize) {
-                res.send({
-                    status: true,
-                    date_start: videoTimings.date_start,
-                    date_end: videoTimings.date_end,
-                    file_name: videoTimings.file_name,
-                    video_start_from
-                });
-                console.log('<<<<<<<<<<<<<<status: true>>>>>>>>>>>>>>>>')
-                return
-            }
-            console.log('<<<<<<<<<<<<<<status: false>>>>>>>>>>>>>>>>')
-            res.send({"status": false});
-    
-            return
-        } catch (e) {
-            console.log(e, 'e')
-            res.send({"status": false});
-            return
+            video_start_from = Math.max(0, video_start_from - rollBackTime);
+
+            return res.json({
+                status: true,
+                ...videoTimings,
+                video_start_from
+            });
+        } catch (error) {
+            console.error('Error processing /is_video_available:', error);
+
+            return res.status(500).json({
+                status: false,
+                message: 'An error occurred while processing the request',
+                error: error.message
+            });
         }
     });
+
     app.post("/get_video_start_time", async function (req, res) {
         try {
             let {time, camera_ip} = req.body;
