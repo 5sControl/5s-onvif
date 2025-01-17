@@ -164,8 +164,13 @@ const videoRecord = (rtspUrl, camera_ip, db) => {
             } else {
                 console.log(`Recorded video: ${fileName}`);
                 db.run(`INSERT INTO videos (file_name, date_start, date_end, camera_ip)
-                        VALUES (?, ?, ?,
-                                ?)`, [filePath, startTime.valueOf(), endTime.valueOf(), camera_ip]);
+                        VALUES (?, ?, ?, ?)`, [filePath, startTime.valueOf(), endTime.valueOf(), camera_ip], function(err) {
+                    if (err) {
+                        console.error(`Database insertion error: ${err}`);
+                    } else {
+                        console.log(`Video record inserted into database successfully with ID: ${this.lastID}`);
+                    }
+                });
                 videoRecord(rtspUrl, camera_ip, db)
             }
 
