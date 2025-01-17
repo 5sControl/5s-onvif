@@ -1,5 +1,7 @@
 const getFilePath = async (time, camera_ip, db) => {
     const date = time;
+    console.log(db, 1);
+    
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
@@ -23,6 +25,7 @@ const getVideoTimings = async (time, camera_ip, db) => {
     const date = time;
     console.log(date, 'date')
     console.log(camera_ip, 'camera_ip')
+    console.log(db, 2);
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
@@ -44,6 +47,7 @@ const getVideoTimings = async (time, camera_ip, db) => {
 }
 
 const removeLast500Videos = async (db) => {
+    console.log(db, 3);
     return new Promise((resolve, reject) => {
         db.all(`DELETE
                 FROM videos
@@ -66,6 +70,7 @@ const removeLast500Videos = async (db) => {
 }
 
 const getLast500Videos = async (db) => {
+    console.log(db, 4);
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
@@ -85,6 +90,7 @@ const getLast500Videos = async (db) => {
 }
 
 const getVideosBeforeDate = async (db, date) => {
+    console.log(db, 5);
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM videos
@@ -117,6 +123,7 @@ const removeVideosByIds = async (db, ids) =>{
 }
 
 const removeVideosBeforeDate = async (db, date) => {
+    console.log(db, 6);
     return new Promise((resolve, reject) => {
         db.all(`DELETE
                 FROM videos
@@ -136,6 +143,7 @@ const removeVideosBeforeDate = async (db, date) => {
 }
 
 const getSettings = async (db) => {
+    console.log(db, 7);
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
                 FROM SETTINGS`, (err, rows) => {
