@@ -41,7 +41,6 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cors());
 app.use(morgan('dev'));
-app.use('', cameraRoutes);
 
 (async () => {
     let IP = process.env.DJANGO_SERVICE_URL;
@@ -53,6 +52,9 @@ app.use('', cameraRoutes);
         console.log(cameras, 'cameras')
     }, 60000)
     const db = await init();
+
+    app.use('', cameraRoutes);
+
     app.post('/add_camera', async function (req, res) {
         const {ip, username, password} = req.body;
         if (!ip || !username || !password) {
