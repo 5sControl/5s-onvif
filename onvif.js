@@ -36,6 +36,8 @@ require('dotenv').config();
 const cameraRoutes = require('./routes/camera');
 const cron = require("node-cron");
 const cleanupVideos = require("./video-services/cleanup-videos.js");
+const { deleteFile } = require("./storage");
+const findOrphanFiles = require("./utils/find-phan-files");
 
 
 
@@ -442,6 +444,29 @@ app.use(cors());
         }
     });
 
+    app.use('/cleanup_orphan_files', async (req, res) => {
+        try {
+            const orphanFiles = await findOrphanFiles(db);
+
+            for (const file of orphanFiles) {
+                await deleteFile(file);
+            }
+    
+            res.status(200).send({
+                status: true,
+                message: 'Orphan files cleanup completed.',
+                deletedFiles: orphanFiles.length
+            });
+        } catch (error) {
+            console.error('Error during orphan files cleanup:', error.message);
+            res.status(500).send({
+                status: false,
+                message: 'Error during orphan files cleanup.',
+                error: error.message
+            });
+        }
+    });
+
     cron.schedule("05 10 * * *", async () => {
         try {
             console.log("Starting scheduled cleanup task...");
@@ -453,9 +478,9 @@ app.use(cors());
     });
     
     server.listen(3456, () => {
-        console.log('server started on 3456')
+        console.log('\x1b[32mServer run on 3456\x1b[0m')
         const startTime = new Date();
-        console.log(`Server started at: ${startTime.toLocaleString()} (local server time)`);
+        console.log(`\x1b[33mServer started at: ${startTime.toLocaleString()} (local server time)\x1b[0m`);
     })
     fetchCameras(IP, cameras, db, io)
 })();
