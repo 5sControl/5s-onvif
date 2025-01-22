@@ -29,11 +29,13 @@ const {
     videoRecord,
     returnUpdatedScreenshot
 } = require('./fetch_cameras');
-const {getFilePath, getVideoTimings,  getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosByIds} = require('./db.js');
-const {getFreeSpace, removeFile} = require('./storage');
+const { getFilePath, getVideoTimings, getSettings, editSettings } = require('./db.js');
+const { getFreeSpace } = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
 require('dotenv').config();
 const cameraRoutes = require('./routes/camera');
+const cron = require("node-cron");
+const cleanupVideos = require("./video-services/cleanup-videos.js");
 
 
 
@@ -428,46 +430,21 @@ app.use(morgan('dev'));
         }
         res.send(cameras[cameraIp]?.screenshotBuffer)
     });
-    
-    setInterval(async () => {
-        try{
-            const settings = await getSettings(db);
-            const now = Date.now();
-            const milisecondsLimit = settings.daysLimit * 24 * 60 * 60 * 1000;
-            const deleteVideosDate = now - milisecondsLimit;
-            const videos = await getVideosBeforeDate(db, deleteVideosDate);
-            await removeVideosByIds(db, videos.map((video) =>video.id));
-            for (const video of videos) {
-                await removeFile(video.file_name)
-            }
-    
-            const freeSpace = await getFreeSpace();
-    
-            if (freeSpace < settings.gigabyteLimit) {
-                // io.emit('notification', {"message": "Low disk space. Old videos will be deleted", "type": "warning"});
-                // await sendSystemMessage(IP, {
-                //     title: "Low disk space",
-                //     content: "Less than 20% of hard drive space left. Old videos will be deleted"
-                // })
-                const videos = await getLast500Videos(db);
-                await removeVideosByIds(db,videos.map((video) =>video.id));
-                for (const video of videos) {
-                    await removeFile(video.file_name)
-                }
-            }
+
+    cron.schedule("00 12 * * *", async () => {
+        try {
+            console.log("Starting scheduled cleanup task...");
+            await cleanupVideos(db);
+            console.log("Cleanup task completed successfully.");
+        } catch (error) {
+            console.error("Error in scheduled cleanup task:", error.message);
         }
-        catch (e){
-            console.log(e)
-        }
-    }, 60000)
+    });
     
     server.listen(3456, () => {
         console.log('server started on 3456')
     })
     fetchCameras(IP, cameras, db, io)
 })();
-
-
-const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
 
 
