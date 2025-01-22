@@ -27,7 +27,6 @@ const captureSnapshot = async (username, password, cameraIp) => {
                     resolve({ url: snapshotUrl });
                 })
                 .on('error', (err, stdout, stderr) => {
-                    console.error(`FFmpeg error for camera ${cameraIp}:`, err.message);
                     reject({ error: err.message });
                 });
         });

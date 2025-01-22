@@ -29,18 +29,22 @@ const {
     videoRecord,
     returnUpdatedScreenshot
 } = require('./fetch_cameras');
-const {getFilePath, getVideoTimings,  getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosByIds} = require('./db.js');
-const {getFreeSpace, removeFile} = require('./storage');
+const { getFilePath, getVideoTimings, getSettings, editSettings, fetchTotalCountVideos } = require('./db.js');
+const { getFreeSpace } = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
 require('dotenv').config();
 const cameraRoutes = require('./routes/camera');
+const cron = require("node-cron");
+const cleanupVideos = require("./video-services/cleanup-videos.js");
+const { deleteFile } = require("./storage");
+const findOrphanFiles = require("./utils/find-orphan-files.js");
 
 
 
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cors());
-app.use(morgan('dev'));
+// app.use(morgan('dev'));
 
 (async () => {
     let IP = process.env.DJANGO_SERVICE_URL;
@@ -48,9 +52,6 @@ app.use(morgan('dev'));
 
     const uri = `rtsp://${IP}:8554/mystream`;
     let screenshot = null
-    setInterval(() => {
-        console.log(cameras, 'cameras')
-    }, 60000)
     const db = await init();
 
     app.use('', cameraRoutes);
@@ -226,11 +227,9 @@ app.use(morgan('dev'));
             }
 
             const videoTimings = await getVideoTimings(time, camera_ip, db);
-            console.log(`Video timings: ${JSON.stringify(videoTimings)}`);
 
             const videoStats = await fs.promises.stat(videoTimings.file_name);
             const videoSize = videoStats.size;
-            console.log(`Video size: ${videoSize} bytes`);
     
             const rollBackTime = 10 * 1000;
             let video_start_from = time - videoTimings.date_start;
@@ -374,8 +373,7 @@ app.use(morgan('dev'));
     io.on('connection', (socket) => {
         console.log('<<<<<<<<<<<<<<<user connection>>>>>>>>>>>>>>>>>>>')
         socket.emit('tasks', tasks)
-        socket.on('tasks', (data) => {
-        console.log('tasks')    
+        socket.on('tasks', (data) => { 
         tasks = data;     
         socket.broadcast.emit('tasks', data);
       });
@@ -428,46 +426,63 @@ app.use(morgan('dev'));
         }
         res.send(cameras[cameraIp]?.screenshotBuffer)
     });
+
+    app.use('/video_count', async (req, res) => {
+        try {
+            const count = await fetchTotalCountVideos(db);
     
-    setInterval(async () => {
-        try{
-            const settings = await getSettings(db);
-            const now = Date.now();
-            const milisecondsLimit = settings.daysLimit * 24 * 60 * 60 * 1000;
-            const deleteVideosDate = now - milisecondsLimit;
-            const videos = await getVideosBeforeDate(db, deleteVideosDate);
-            await removeVideosByIds(db, videos.map((video) =>video.id));
-            for (const video of videos) {
-                await removeFile(video.file_name)
+            res.status(200).send({
+                status: true,
+                count: count,
+            });
+        } catch (error) {
+            console.error('Error in /video_count:', error.message);
+            res.status(500).send({
+                status: false,
+                message: 'Internal server error',
+            });
+        }
+    });
+
+    app.use('/cleanup_orphan_files', async (req, res) => {
+        try {
+            const orphanFiles = await findOrphanFiles(db);
+
+            for (const file of orphanFiles) {
+                await deleteFile(file);
             }
     
-            const freeSpace = await getFreeSpace();
-    
-            if (freeSpace < settings.gigabyteLimit) {
-                // io.emit('notification', {"message": "Low disk space. Old videos will be deleted", "type": "warning"});
-                // await sendSystemMessage(IP, {
-                //     title: "Low disk space",
-                //     content: "Less than 20% of hard drive space left. Old videos will be deleted"
-                // })
-                const videos = await getLast500Videos(db);
-                await removeVideosByIds(db,videos.map((video) =>video.id));
-                for (const video of videos) {
-                    await removeFile(video.file_name)
-                }
-            }
+            res.status(200).send({
+                status: true,
+                message: 'Orphan files cleanup completed.',
+                deletedFiles: orphanFiles.length
+            });
+        } catch (error) {
+            console.error('Error during orphan files cleanup:', error.message);
+            res.status(500).send({
+                status: false,
+                message: 'Error during orphan files cleanup.',
+                error: error.message
+            });
         }
-        catch (e){
-            console.log(e)
+    });
+
+    cron.schedule("00 12 * * *", async () => {
+        try {
+            console.log("Starting scheduled cleanup task...");
+            await cleanupVideos(db);
+            console.log("Cleanup task completed successfully.");
+        } catch (error) {
+            console.error("Error in scheduled cleanup task:", error.message);
         }
-    }, 60000)
+    });
     
     server.listen(3456, () => {
-        console.log('server started on 3456')
+        console.log('\x1b[32mServer run on 3456\x1b[0m')
+        const startTime = new Date();
+        console.log(`\x1b[33mServer started at: ${startTime.toLocaleString()} (local server time)\x1b[0m`);
     })
     fetchCameras(IP, cameras, db, io)
 })();
-
-
-const rtspUrl = 'rtsp://admin:just4Taqtile@192.168.1.64:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1';
 
 
