@@ -37,7 +37,7 @@ const cameraRoutes = require('./routes/camera');
 const cron = require("node-cron");
 const cleanupVideos = require("./video-services/cleanup-videos.js");
 const { deleteFile } = require("./storage");
-const findOrphanFiles = require("./utils/find-phan-files");
+const findOrphanFiles = require("./utils/find-orphan-files.js");
 
 
 
