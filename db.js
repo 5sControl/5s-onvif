@@ -61,6 +61,16 @@ const fetchTotalCountVideos = async (db) => {
     return totalVideosCount
 }
 
+const getAllVideosFromDb = async (db) => {
+    try {
+        const videos = await db.all('SELECT file_name FROM videos');
+        return videos.map(video => video.file_name);
+    } catch (error) {
+        console.error('Error fetching videos from database:', error.message);
+        throw error;
+    }
+};
+
 const fetchVideosBeforeDate = async (db, timestamp) => { 
     console.log(timestamp, 'timestamp');
     await fetchTotalCountVideos(db);
@@ -188,5 +198,6 @@ module.exports = {
     fetchVideosBeforeDate,
     removeVideosBeforeDate,
     deleteVideosAndFiles,
-    fetchTotalCountVideos
+    fetchTotalCountVideos,
+    getAllVideosFromDb
 }
