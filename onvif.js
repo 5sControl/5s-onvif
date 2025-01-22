@@ -50,9 +50,6 @@ app.use(morgan('dev'));
 
     const uri = `rtsp://${IP}:8554/mystream`;
     let screenshot = null
-    setInterval(() => {
-        console.log(cameras, 'cameras')
-    }, 60000)
     const db = await init();
 
     app.use('', cameraRoutes);
@@ -376,8 +373,7 @@ app.use(morgan('dev'));
     io.on('connection', (socket) => {
         console.log('<<<<<<<<<<<<<<<user connection>>>>>>>>>>>>>>>>>>>')
         socket.emit('tasks', tasks)
-        socket.on('tasks', (data) => {
-        console.log('tasks')    
+        socket.on('tasks', (data) => { 
         tasks = data;     
         socket.broadcast.emit('tasks', data);
       });
@@ -431,7 +427,7 @@ app.use(morgan('dev'));
         res.send(cameras[cameraIp]?.screenshotBuffer)
     });
 
-    cron.schedule("00 12 * * *", async () => {
+    cron.schedule("10 12 * * *", async () => {
         try {
             console.log("Starting scheduled cleanup task...");
             await cleanupVideos(db);
