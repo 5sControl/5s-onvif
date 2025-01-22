@@ -42,7 +42,7 @@ const cleanupVideos = require("./video-services/cleanup-videos.js");
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cors());
-app.use(morgan('dev'));
+// app.use(morgan('dev'));
 
 (async () => {
     let IP = process.env.DJANGO_SERVICE_URL;
@@ -225,11 +225,9 @@ app.use(morgan('dev'));
             }
 
             const videoTimings = await getVideoTimings(time, camera_ip, db);
-            console.log(`Video timings: ${JSON.stringify(videoTimings)}`);
 
             const videoStats = await fs.promises.stat(videoTimings.file_name);
             const videoSize = videoStats.size;
-            console.log(`Video size: ${videoSize} bytes`);
     
             const rollBackTime = 10 * 1000;
             let video_start_from = time - videoTimings.date_start;
@@ -427,7 +425,7 @@ app.use(morgan('dev'));
         res.send(cameras[cameraIp]?.screenshotBuffer)
     });
 
-    cron.schedule("10 12 * * *", async () => {
+    cron.schedule("26 12 * * *", async () => {
         try {
             console.log("Starting scheduled cleanup task...");
             await cleanupVideos(db);
@@ -439,6 +437,9 @@ app.use(morgan('dev'));
     
     server.listen(3456, () => {
         console.log('server started on 3456')
+        const startTime = new Date();
+        console.log(`Server started at: ${startTime.toLocaleString()} (local server time)`);
+        console.log(`Server started at (UTC): ${startTime.toISOString()}`);
     })
     fetchCameras(IP, cameras, db, io)
 })();

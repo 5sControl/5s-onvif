@@ -2,7 +2,6 @@ const {deleteFile} = require('./storage');
 
 const getFilePath = async (time, camera_ip, db) => {
     const date = time;
-    console.log(db, 1);
     
     return new Promise((resolve, reject) => {
         db.all(`SELECT *
@@ -134,7 +133,6 @@ const getSettings = async (db) => {
   };
 
 const removeVideosBeforeDate = async (db, date) => {
-    console.log(db, 6);
     return new Promise((resolve, reject) => {
         db.all(`DELETE
                 FROM videos

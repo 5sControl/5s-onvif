@@ -17,9 +17,9 @@ if (!IP) {
 }
 
 const cameraErrors = {}
-setInterval(() => {
-    console.log(cameraErrors, 'cameraErrors')
-}, 10000)
+// setInterval(() => {
+//     console.log(cameraErrors, 'cameraErrors')
+// }, 10000)
 function arrayBufferToBuffer(arrayBuffer) {
     if (arrayBuffer?.byteLength == 0) {
         console.log(arrayBuffer?.byteLength, 'arrayBuffer.byteLength')
@@ -52,7 +52,6 @@ const screenshotUpdate = async (username, password, ip) => {
             return { success: false, error: snapshotUrlData.error };
         }
     } catch (e) {
-        console.error(`camera ip: ${ip}`, 'screenshotUpdate error:', e);
         if (!cameraErrors[ip]) {
             cameraErrors[ip] = 1;
         }
