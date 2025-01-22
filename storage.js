@@ -21,7 +21,11 @@ const deleteFile = async (fileName) => {
         await fs.unlink(filePath);
         console.log(`${filePath} was deleted successfully`);
     } catch (error) {
-        throw new Error(`Error deleting file: ${fileName}, ${error.message}`);
+        if (error.code === 'ENOENT') {
+            console.warn(`File not found: ${filePath}, skipping...`);
+        } else {
+            throw new Error(`Error deleting file: ${fileName}, ${error.message}`);
+        }
     }
 };
 

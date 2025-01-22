@@ -442,7 +442,7 @@ app.use(cors());
         }
     });
 
-    cron.schedule("55 09 * * *", async () => {
+    cron.schedule("05 10 * * *", async () => {
         try {
             console.log("Starting scheduled cleanup task...");
             await cleanupVideos(db);
