@@ -49,20 +49,23 @@ const getVideoTimings = async (time, camera_ip, db) => {
     }
 };
 
+const fetchTotalCountVideos = async (db) => {
+    const queryTotalCount = `
+        SELECT COUNT(*) AS total
+        FROM videos
+    `;
+
+    const totalCountResult = await db.get(queryTotalCount);
+    const totalVideosCount = totalCountResult?.total || 0;
+    console.log(`Total videos in the database: ${totalVideosCount}`);
+    return totalVideosCount
+}
+
 const fetchVideosBeforeDate = async (db, timestamp) => { 
     console.log(timestamp, 'timestamp');
+    await fetchTotalCountVideos(db);
     
     try {
-        const queryTotalCount = `
-                SELECT COUNT(*) AS total
-                FROM videos
-        `;
-
-        const totalCountResult = await db.get(queryTotalCount);
-        const totalVideosCount = totalCountResult?.total || 0;
-        
-        console.log(`Total videos in the database: ${totalVideosCount}`);
-
         const queryVideos = `
             SELECT *
             FROM videos
@@ -88,7 +91,7 @@ const deleteVideosAndFiles = async (db, videos) => {
         return;
     }
 
-    const MAX_IDS_PER_QUERY = 2;
+    const MAX_IDS_PER_QUERY = 60;
     const idChunks = [];
 
     for (let i = 0; i < videos.length; i += MAX_IDS_PER_QUERY) {
@@ -99,7 +102,7 @@ const deleteVideosAndFiles = async (db, videos) => {
         const videoIds = chunk.map((video) => video.id);
 
         try {
-            await db.run('BEGIN TRANSACTION');
+            // await db.run('BEGIN TRANSACTION');
 
             const placeholders = videoIds.map(() => '?').join(',');
             const deleteQuery = `DELETE FROM videos WHERE id IN (${placeholders});`;
@@ -110,10 +113,10 @@ const deleteVideosAndFiles = async (db, videos) => {
                 await deleteFile(video.file_name);
             }
 
-            await db.run('COMMIT');
+            // await db.run('COMMIT');
         } catch (error) {
             console.error(`Error during transaction for chunk:`, error.message, error.stack);
-            await db.run('ROLLBACK');
+            // await db.run('ROLLBACK');
             throw new Error('Transaction failed.');
         }
     }
@@ -184,5 +187,6 @@ module.exports = {
     editSettings,
     fetchVideosBeforeDate,
     removeVideosBeforeDate,
-    deleteVideosAndFiles
+    deleteVideosAndFiles,
+    fetchTotalCountVideos
 }

@@ -29,7 +29,7 @@ const {
     videoRecord,
     returnUpdatedScreenshot
 } = require('./fetch_cameras');
-const { getFilePath, getVideoTimings, getSettings, editSettings } = require('./db.js');
+const { getFilePath, getVideoTimings, getSettings, editSettings, fetchTotalCountVideos } = require('./db.js');
 const { getFreeSpace } = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
 require('dotenv').config();
@@ -425,7 +425,24 @@ app.use(cors());
         res.send(cameras[cameraIp]?.screenshotBuffer)
     });
 
-    cron.schedule("35 09 * * *", async () => {
+    app.use('/video_count', async (req, res) => {
+        try {
+            const count = await fetchTotalCountVideos(db);
+    
+            res.status(200).send({
+                status: true,
+                count: count,
+            });
+        } catch (error) {
+            console.error('Error in /video_count:', error.message);
+            res.status(500).send({
+                status: false,
+                message: 'Internal server error',
+            });
+        }
+    });
+
+    cron.schedule("55 09 * * *", async () => {
         try {
             console.log("Starting scheduled cleanup task...");
             await cleanupVideos(db);
