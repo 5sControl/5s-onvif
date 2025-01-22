@@ -425,7 +425,7 @@ app.use(cors());
         res.send(cameras[cameraIp]?.screenshotBuffer)
     });
 
-    cron.schedule("26 12 * * *", async () => {
+    cron.schedule("35 09 * * *", async () => {
         try {
             console.log("Starting scheduled cleanup task...");
             await cleanupVideos(db);
@@ -439,7 +439,6 @@ app.use(cors());
         console.log('server started on 3456')
         const startTime = new Date();
         console.log(`Server started at: ${startTime.toLocaleString()} (local server time)`);
-        console.log(`Server started at (UTC): ${startTime.toISOString()}`);
     })
     fetchCameras(IP, cameras, db, io)
 })();
