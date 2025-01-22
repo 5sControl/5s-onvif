@@ -1,3 +1,5 @@
+const {deleteFile} = require('./storage');
+
 const getFilePath = async (time, camera_ip, db) => {
     const date = time;
     console.log(db, 1);
@@ -48,81 +50,88 @@ const getVideoTimings = async (time, camera_ip, db) => {
     }
 };
 
-const removeLast500Videos = async (db) => {
-    console.log(db, 3);
-    return new Promise((resolve, reject) => {
-        db.all(`DELETE
+const fetchVideosBeforeDate = async (db, timestamp) => { 
+    console.log(timestamp, 'timestamp');
+    
+    try {
+        const queryTotalCount = `
+                SELECT COUNT(*) AS total
                 FROM videos
-                WHERE id IN (SELECT id
-                             FROM videos
-                             ORDER BY id
-                    LIMIT 500
-                    );`, (err, rows) => {
-            if (err) {
-                throw err;
-            }
-            if (rows) {
-                resolve(true)
-            } else {
-                reject('Row not found')
-            }
+        `;
 
-        });
-    });
-}
+        const totalCountResult = await db.get(queryTotalCount);
+        const totalVideosCount = totalCountResult?.total || 0;
+        
+        console.log(`Total videos in the database: ${totalVideosCount}`);
 
-const getLast500Videos = async (db) => {
-    console.log(db, 4);
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT *
-                FROM videos
-                ORDER BY id LIMIT 500`, (err, rows) => {
-            if (err) {
-                throw err;
-            }
-            console.log(rows, 'rows to remove')
-            if (rows) {
-                resolve(rows)
-            } else {
-                reject('Row not found')
-            }
-
-        });
-    });
-}
-
-const getVideosBeforeDate = async (db, date) => {
-    console.log(db, 5);
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT *
-                FROM videos
-                where date_start < ${date}`, (err, rows) => {
-            if (err) {
-                throw err;
-            }
-            console.log(rows, 'rows to remove')
-            if (rows) {
-                resolve(rows)
-            } else {
-                reject('Row not found')
-            }
-
-        });
-    });
-}
-
-const removeVideosByIds = async (db, ids) =>{
-    try{
-        const placeholders = ids.map(() => '?').join(',');
-        return db.run(`DELETE
-                FROM videos
-                WHERE id IN (${placeholders});`, ids)
+        const queryVideos = `
+            SELECT *
+            FROM videos
+            WHERE date_start < ?
+        `;
+        const outdatedVideos = await db.all(queryVideos, timestamp); 
+    
+        if (!outdatedVideos || outdatedVideos.length === 0) {
+            throw new Error('No videos found before the specified date.');
+        }
+        console.log('Outdated videos to remove:', outdatedVideos.length);
+        return outdatedVideos;
+  
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      throw error;
     }
-    catch(e){
-        console.log(e)
-        throw new Error('Rows have not deleted')
+  };
+
+const deleteVideosAndFiles = async (db, videos) => {
+    if (!videos || videos.length === 0) {
+        console.log('No video IDs provided for deletion.');
+        return;
     }
-}
+
+    const MAX_IDS_PER_QUERY = 2;
+    const idChunks = [];
+
+    for (let i = 0; i < videos.length; i += MAX_IDS_PER_QUERY) {
+        idChunks.push(videos.slice(i, i + MAX_IDS_PER_QUERY));
+    }
+
+    for (const chunk of idChunks) {
+        const videoIds = chunk.map((video) => video.id);
+
+        try {
+            await db.run('BEGIN TRANSACTION');
+
+            const placeholders = videoIds.map(() => '?').join(',');
+            const deleteQuery = `DELETE FROM videos WHERE id IN (${placeholders});`;
+            const result = await db.run(deleteQuery, videoIds);
+            console.log(`Successfully deleted ${result.changes || 0} video(s) for IDs:`, videoIds);
+
+            for (const video of chunk) {
+                await deleteFile(video.file_name);
+            }
+
+            await db.run('COMMIT');
+        } catch (error) {
+            console.error(`Error during transaction for chunk:`, error.message, error.stack);
+            await db.run('ROLLBACK');
+            throw new Error('Transaction failed.');
+        }
+    }
+};
+
+const getSettings = async (db) => {
+    try {
+      const result = await db.get(`SELECT * FROM SETTINGS`);
+      if (!result) {
+        throw new Error('Settings not found'); 
+      }
+      return { daysLimit: result.daysLimit, gigabyteLimit: result.gigabyteLimit };
+    } catch (error) {
+      console.error('Error getting settings:', error);
+      throw error;
+    }
+  };
 
 const removeVideosBeforeDate = async (db, date) => {
     console.log(db, 6);
@@ -136,25 +145,6 @@ const removeVideosBeforeDate = async (db, date) => {
             console.log(rows, 'rows to remove')
             if (rows) {
                 resolve(rows)
-            } else {
-                reject('Row not found')
-            }
-
-        });
-    });
-}
-
-const getSettings = async (db) => {
-    console.log(db, 7);
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT *
-                FROM SETTINGS`, (err, rows) => {
-            if (err) {
-                console.log(err,' eerrr')
-                throw err;
-            }
-            if (rows[0]) {
-                resolve({daysLimit: rows[0].daysLimit, gigabyteLimit: rows[0].gigabyteLimit})
             } else {
                 reject('Row not found')
             }
@@ -189,4 +179,12 @@ const editSettings = async (db, settings) => {
 
 
 
-module.exports = {getFilePath, getVideoTimings, removeLast500Videos, getLast500Videos, getSettings, editSettings, getVideosBeforeDate, removeVideosBeforeDate, removeVideosByIds}
+module.exports = {
+    getFilePath,
+    getVideoTimings,
+    getSettings,
+    editSettings,
+    fetchVideosBeforeDate,
+    removeVideosBeforeDate,
+    deleteVideosAndFiles
+}
