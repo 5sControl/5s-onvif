@@ -8,7 +8,7 @@ const cleanupVideos = async (db) => {
         const currentTimestamp = Date.now();
         const settings = await getSettings(db);
         const minimumDaysLimit =  settings.daysLimit - 1;
-        let daysLimit = settings.daysLimit;
+        let daysLimit = 2;
         
         while (daysLimit >= minimumDaysLimit) {
             const deletionCutoffTimestamp = currentTimestamp - daysLimit * MS_IN_A_DAY;
