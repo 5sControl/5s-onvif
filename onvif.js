@@ -467,6 +467,93 @@ app.use(cors());
         }
     });
 
+app.post('/create_manifest', async (req, res) => {
+    const { timeStart, timeEnd, cameraIp } = req.body;
+  console.log(timeStart, timeEnd, cameraIp);
+  
+    if (!timeStart || !timeEnd || !cameraIp) {
+      return res
+        .status(400)
+        .json({ status: false, message: "timeStart, timeEnd и cameraIp обязательны" });
+    }
+  
+    const start = Number(timeStart);
+    const end = Number(timeEnd);
+  
+    if (isNaN(start) || isNaN(end) || start >= end) {
+      return res
+        .status(400)
+        .json({ status: false, message: "Некорректные значения timeStart/timeEnd" });
+    }
+
+    const SEGMENT_DURATION_MS = 2 * 60 * 1000;
+    const segments = [];
+    const fileName = await getFilePath(1738760981486, cameraIp, db)
+console.log(fileName, 1);
+
+    // for (let t = start; t < end; t += SEGMENT_DURATION_MS) {
+    //     const segmentStart = new Date(t);
+    //     console.log(2);
+        
+    //     const fileName = await getFilePath(t, cameraIp, db)
+    //     console.log(fileName);
+    //     segments.push({
+    //       startTime: segmentStart,
+    //       fileName: fileName
+    //     });
+    //   }
+  
+    // let manifest = "#EXTM3U\n";
+    // manifest += "#EXT-X-VERSION:3\n";
+    // manifest += "#EXT-X-TARGETDURATION:120\n";
+    // manifest += "#EXT-X-MEDIA-SEQUENCE:0\n\n";
+  
+    // segments.forEach(segment => {
+    //   manifest += `#EXT-X-PROGRAM-DATE-TIME:${segment.startTime.toISOString()}\n`;
+    //   manifest += "#EXTINF:120.0,\n";
+    //   manifest += `${segment.fileName}\n\n`;
+    // });
+  
+    // manifest += "#EXT-X-ENDLIST\n";
+  
+    // res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+    // res.send(manifest);
+    res.send({"status": true, result: 'settings'});
+  });
+
+  app.get('/videos_1', async (req, res) => {
+    try {
+      const query = `SELECT * FROM videos`;
+      console.log(db, 5);
+      
+      // Выполнение запроса к базе данных
+      const rows = await new Promise((resolve, reject) => {
+        db.all(query, [], (err, rows) => {
+          if (err) {
+            console.error('Database query error:', err.message);
+            reject(new Error(`Database query error: ${err.message}`));
+          } else {
+            resolve(rows);
+          }
+        });
+      });
+  
+      // Возвращаем все записи
+      res.status(200).json({
+        status: true,
+        message: 'Retrieved all video records successfully',
+        data: rows,
+      });
+    } catch (error) {
+      console.error('Error retrieving video records:', error.message);
+      res.status(500).json({
+        status: false,
+        message: 'Error retrieving video records',
+        error: error.message,
+      });
+    }
+  });
+
     cron.schedule("00 12 * * *", async () => {
         try {
             console.log("Starting scheduled cleanup task...");
