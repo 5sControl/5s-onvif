@@ -22,6 +22,34 @@ const getFilePath = async (time, camera_ip, db) => {
     });
 }
 
+  const fetchSegmentRecord = async (timestamp, cameraIp, db) => {
+    const query = `
+      SELECT
+        file_name AS fileName,
+        date_start AS startTime,
+        date_end AS endTime
+      FROM videos
+      WHERE date_start <= ?
+        AND date_end >= ?
+        AND camera_ip = ?
+      LIMIT 1
+    `;
+  
+    try {
+      const segmentRecord = await db.get(query, [timestamp, timestamp, cameraIp]);
+      if (segmentRecord) {
+        console.log('Found segment record:', segmentRecord);
+        return segmentRecord;
+      } else {
+        console.warn('No matching segment record found in the database.');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error retrieving segment record:', error.message);
+      return null;
+    }
+};
+
 const getVideoTimings = async (time, camera_ip, db) => {
     try {
         console.log(`Received: time=${time}, camera_ip=${camera_ip}`);
@@ -199,5 +227,6 @@ module.exports = {
     removeVideosBeforeDate,
     deleteVideosAndFiles,
     fetchTotalCountVideos,
-    getAllVideosFromDb
+    getAllVideosFromDb,
+    fetchSegmentRecord
 }
