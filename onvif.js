@@ -29,7 +29,7 @@ const {
     videoRecord,
     returnUpdatedScreenshot
 } = require('./fetch_cameras');
-const { getFilePath, getVideoTimings, getSettings, editSettings, fetchTotalCountVideos } = require('./db.js');
+const { getFilePath, getVideoTimings, getSettings, editSettings, fetchTotalCountVideos, fetchSegmentRecord } = require('./db.js');
 const { getFreeSpace } = require('./storage');
 const {sendSystemMessage} = require('./system-messages')
 require('dotenv').config();
@@ -467,92 +467,82 @@ app.use(cors());
         }
     });
 
-app.post('/create_manifest', async (req, res) => {
-    const { timeStart, timeEnd, cameraIp } = req.body;
-  console.log(timeStart, timeEnd, cameraIp);
-  
-    if (!timeStart || !timeEnd || !cameraIp) {
-      return res
-        .status(400)
-        .json({ status: false, message: "timeStart, timeEnd и cameraIp обязательны" });
-    }
-  
-    const start = Number(timeStart);
-    const end = Number(timeEnd);
-  
-    if (isNaN(start) || isNaN(end) || start >= end) {
-      return res
-        .status(400)
-        .json({ status: false, message: "Некорректные значения timeStart/timeEnd" });
-    }
-
-    const SEGMENT_DURATION_MS = 2 * 60 * 1000;
-    const segments = [];
-    const fileName = await getFilePath(1738760981486, cameraIp, db)
-console.log(fileName, 1);
-
-    // for (let t = start; t < end; t += SEGMENT_DURATION_MS) {
-    //     const segmentStart = new Date(t);
-    //     console.log(2);
-        
-    //     const fileName = await getFilePath(t, cameraIp, db)
-    //     console.log(fileName);
-    //     segments.push({
-    //       startTime: segmentStart,
-    //       fileName: fileName
-    //     });
-    //   }
-  
-    // let manifest = "#EXTM3U\n";
-    // manifest += "#EXT-X-VERSION:3\n";
-    // manifest += "#EXT-X-TARGETDURATION:120\n";
-    // manifest += "#EXT-X-MEDIA-SEQUENCE:0\n\n";
-  
-    // segments.forEach(segment => {
-    //   manifest += `#EXT-X-PROGRAM-DATE-TIME:${segment.startTime.toISOString()}\n`;
-    //   manifest += "#EXTINF:120.0,\n";
-    //   manifest += `${segment.fileName}\n\n`;
-    // });
-  
-    // manifest += "#EXT-X-ENDLIST\n";
-  
-    // res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
-    // res.send(manifest);
-    res.send({"status": true, result: 'settings'});
-  });
-
-  app.get('/videos_1', async (req, res) => {
-    try {
-      const query = `SELECT * FROM videos`;
-      console.log(db, 5);
+    app.post('/create_manifest', async (req, res) => {
+        try {
+          const { timeStart, timeEnd, cameraIp } = req.body;
+          console.log(`timeStart: ${timeStart}, timeEnd: ${timeEnd}, cameraIp: ${cameraIp}`);
       
-      // Выполнение запроса к базе данных
-      const rows = await new Promise((resolve, reject) => {
-        db.all(query, [], (err, rows) => {
-          if (err) {
-            console.error('Database query error:', err.message);
-            reject(new Error(`Database query error: ${err.message}`));
-          } else {
-            resolve(rows);
+          if (!timeStart || !timeEnd || !cameraIp) {
+            return res.status(400).json({
+              status: false,
+              message: "The fields 'timeStart', 'timeEnd' and 'cameraIp' are required.",
+            });
           }
-        });
-      });
-  
-      // Возвращаем все записи
-      res.status(200).json({
-        status: true,
-        message: 'Retrieved all video records successfully',
-        data: rows,
-      });
-    } catch (error) {
-      console.error('Error retrieving video records:', error.message);
-      res.status(500).json({
-        status: false,
-        message: 'Error retrieving video records',
-        error: error.message,
-      });
-    }
-  });
+      
+          const startTime = Number(timeStart);
+          const endTime = Number(timeEnd);
+      
+          if (Number.isNaN(startTime) || Number.isNaN(endTime) || startTime >= endTime) {
+            return res.status(400).json({
+              status: false,
+              message: "Invalid values for 'timeStart' or 'timeEnd'.",
+            });
+          }
+      
+          const segmentDurationMs = 2 * 60 * 1000;
+          const foundSegments = [];
+      
+          let isFirstSegment = true;
+          let initialOffset = 0;
+          let finalOffset = 0;
+      
+          for (let currentTime = startTime; currentTime < endTime; currentTime += segmentDurationMs) {
+            const isLastSegment = (currentTime + segmentDurationMs >= endTime);
+      
+            const segmentData = await fetchSegmentRecord(currentTime, cameraIp, db);
+      
+            if (isFirstSegment) {
+              initialOffset = (startTime - segmentData.startTime) / 1000;
+              isFirstSegment = false;
+            }
+      
+            if (segmentData?.fileName) {
+              foundSegments.push(segmentData);
+            }
+      
+            if (isLastSegment) {
+              finalOffset = (endTime - segmentData.startTime) / 1000;
+            }
+          }
+      
+          let manifest = "#EXTM3U\n";
+          manifest += "#EXT-X-VERSION:3\n";
+          manifest += "#EXT-X-TARGETDURATION:120\n";
+          manifest += `#EXT-X-START:TIME-OFFSET=${initialOffset.toFixed(3)},PRECISE=YES\n`;
+          manifest += "#EXT-X-MEDIA-SEQUENCE:0\n\n";
+      
+          foundSegments.forEach((segment, index) => {
+            manifest += `#EXT-X-PROGRAM-DATE-TIME:${new Date(segment.startTime).toISOString()}\n`;
+            if (index === foundSegments.length - 1) {
+              manifest += `#EXTINF:${finalOffset.toFixed(3)},\n`;
+            } else {
+              manifest += "#EXTINF:120.0,\n";
+            }
+            manifest += `${segment.fileName}\n\n`;
+          });
+      
+          manifest += "#EXT-X-ENDLIST\n";
+      
+          res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+          return res.send(manifest);
+        } catch (error) {
+          console.error("Error creating manifest:", error);
+          return res.status(500).json({
+            status: false,
+            message: "Internal Server Error while creating the manifest.",
+          });
+        }
+    });
 
     cron.schedule("00 12 * * *", async () => {
         try {
