@@ -38,6 +38,9 @@ const cron = require("node-cron");
 const cleanupVideos = require("./video-services/cleanup-videos.js");
 const { deleteFile } = require("./storage");
 const findOrphanFiles = require("./utils/find-orphan-files.js");
+const { exec } = require('child_process');
+const ffmpeg = require('fluent-ffmpeg');
+const { Worker } = require('worker_threads');
 
 
 
@@ -182,7 +185,8 @@ app.use(cors());
                 'Transfer-Encoding': 'chunked'
             });
     
-            let link = `rtsp://admin:just4Taqtile@${camera_ip}:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
+            // let link = `rtsp://admin:just4Taqtile@${camera_ip}:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
+            let link = `rtsp://admin:admin@${camera_ip}/cam/realmonitor?channel=1&subtype=0`
             if (camera_ip === IP) {
                 link = `rtsp://${IP}:8554/mystream`
             }
@@ -467,21 +471,39 @@ app.use(cors());
         }
     });
 
-    app.post('/create_manifest', async (req, res) => {
+      const VIDEO_BASE_PATH = path.join(__dirname, 'videos');
+      let backgroundWorker;
+
+      function initWorker() {
+        if (!backgroundWorker) {
+          backgroundWorker = new Worker(path.join(__dirname, 'background-worker.js'));
+          backgroundWorker.on('message', (msg) => {
+            if (!msg.done) {
+              console.error('Worker chunk error:', msg.error);
+            } else {
+              console.log('Chunk generated:', msg.outTsPath);
+            }
+          });
+          backgroundWorker.on('error', (err) => {
+            console.error('Worker thread error', err);
+          });
+        }
+      }
+      initWorker();
+
+      app.post('/create_manifest', async (req, res) => {
         try {
-          const { timeStart, timeEnd, cameraIp } = req.body;
-          console.log(`timeStart: ${timeStart}, timeEnd: ${timeEnd}, cameraIp: ${cameraIp}`);
-      
-          if (!timeStart || !timeEnd || !cameraIp) {
+          const { timeStart, timeEnd, cameraIp, timespanId } = req.body;
+
+          if (!timeStart || !timeEnd || !cameraIp || !timespanId) {
             return res.status(400).json({
               status: false,
-              message: "The fields 'timeStart', 'timeEnd' and 'cameraIp' are required.",
+              message: "Fields 'timeStart', 'timeEnd', 'cameraIp', 'timespanId' are required.",
             });
           }
-      
+
           const startTime = Number(timeStart);
           const endTime = Number(timeEnd);
-      
           if (Number.isNaN(startTime) || Number.isNaN(endTime) || startTime >= endTime) {
             return res.status(400).json({
               status: false,
@@ -489,60 +511,135 @@ app.use(cors());
             });
           }
       
-          const segmentDurationMs = 2 * 60 * 1000;
-          const foundSegments = [];
+          const timespanFolder = `${timespanId}_${startTime}_${endTime}`;
+          const timespanDir = path.join(VIDEO_BASE_PATH, cameraIp, timespanFolder);
+          const m3u8Name = `${timespanId}_${startTime}_${endTime}_${cameraIp}.m3u8`;
+          const manifestPath = path.join(timespanDir, m3u8Name);
       
-          let isFirstSegment = true;
-          let initialOffset = 0;
-          let finalOffset = 0;
+          try {
+            await fsPromise.stat(manifestPath);
+            const existingM3u8 = await fsPromise.readFile(manifestPath, 'utf8');
+            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            return res.send(existingM3u8);
+          } catch (err) {}
       
-          for (let currentTime = startTime; currentTime < endTime; currentTime += segmentDurationMs) {
-            const isLastSegment = (currentTime + segmentDurationMs >= endTime);
+          const foundSegments = await getFoundSegments(startTime, endTime, cameraIp, db);
       
-            const segmentData = await fetchSegmentRecord(currentTime, cameraIp, db);
-      
-            if (isFirstSegment) {
-              initialOffset = (startTime - segmentData.startTime) / 1000;
-              isFirstSegment = false;
-            }
-      
-            if (segmentData?.fileName) {
-              foundSegments.push(segmentData);
-            }
-      
-            if (isLastSegment) {
-              finalOffset = (endTime - segmentData.startTime) / 1000;
-            }
+          if (!foundSegments.length) {
+            return res.status(404).json({ status: false, message: 'No segments found' });
           }
       
-          let manifest = "#EXTM3U\n";
-          manifest += "#EXT-X-VERSION:3\n";
-          manifest += "#EXT-X-TARGETDURATION:120\n";
-          manifest += `#EXT-X-START:TIME-OFFSET=${initialOffset.toFixed(3)},PRECISE=YES\n`;
-          manifest += "#EXT-X-MEDIA-SEQUENCE:0\n\n";
+          let chunkIndex = 0;
+          const chunkInfos = [];
       
-          foundSegments.forEach((segment, index) => {
-            manifest += `#EXT-X-PROGRAM-DATE-TIME:${new Date(segment.startTime).toISOString()}\n`;
-            if (index === foundSegments.length - 1) {
-              manifest += `#EXTINF:${finalOffset.toFixed(3)},\n`;
-            } else {
-              manifest += "#EXTINF:120.0,\n";
+          for (let i = 0; i < foundSegments.length; i++) {
+            const seg = foundSegments[i];
+            const segDurationSec = 120;
+      
+            let ss = 0;
+            let t = segDurationSec;
+            if (i === 0) {
+              const initialOffset = (startTime - seg.startTime) / 1000;
+              if (initialOffset > 0) {
+                ss = initialOffset;
+                t = segDurationSec - initialOffset;
+              }
             }
-            manifest += `${segment.fileName}\n\n`;
+            if (i === foundSegments.length - 1) {
+              const finalOffset = (endTime - seg.startTime) / 1000;
+              const leftover = finalOffset - ss;
+              if (leftover < t) {
+                t = leftover;
+              }
+            }
+            if (t <= 0) continue;
+      
+            await fsPromise.mkdir(timespanDir, { recursive: true });
+      
+            const chunkName = `${timespanId}_${startTime}_${endTime}_${cameraIp}_${chunkIndex}.ts`;
+            const outTsPath = path.join(timespanDir, chunkName);
+      
+            chunkInfos.push({
+              mp4Path: seg.fileName,
+              outTsPath,
+              ss,
+              t,
+            });
+      
+            chunkIndex++;
+          }
+      
+          if (!chunkInfos.length) {
+            return res.status(404).json({
+              status: false,
+              message: 'No valid chunks to generate.',
+            });
+          }
+      
+          let m3u8 = '#EXTM3U\n';
+          m3u8 += '#EXT-X-VERSION:3\n';
+          m3u8 += `#EXT-X-TARGETDURATION:120\n`;
+          m3u8 += '#EXT-X-MEDIA-SEQUENCE:0\n';
+      
+          for (let i = 0; i < chunkInfos.length; i++) {
+            let duration = chunkInfos[i].t.toFixed(3);
+            if (duration < 0) duration = 0;
+
+            const chunkName = path.basename(chunkInfos[i].outTsPath);
+            const publicChunkPath = path.join('videos', cameraIp, timespanFolder, chunkName)
+              .replace(/\\/g, '/');
+      
+            m3u8 += `#EXTINF:${duration},\n`;
+            m3u8 += `${publicChunkPath}\n`;
+          }
+          m3u8 += '#EXT-X-ENDLIST\n';
+      
+          await fsPromise.mkdir(timespanDir, { recursive: true });
+          await fsPromise.writeFile(manifestPath, m3u8, 'utf8');
+      
+          chunkInfos.forEach((chunk) => {
+            backgroundWorker.postMessage(chunk);
           });
       
-          manifest += "#EXT-X-ENDLIST\n";
+          res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+          return res.send(m3u8);
       
-          res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
-          return res.send(manifest);
         } catch (error) {
-          console.error("Error creating manifest:", error);
+          console.error('Error creating manifest:', error);
           return res.status(500).json({
             status: false,
-            message: "Internal Server Error while creating the manifest.",
+            message: 'Internal Server Error while creating the manifest.',
           });
         }
-    });
+      });
+
+      async function getFoundSegments(startTime, endTime, cameraIp, db) {
+        const segmentDurationMs = 2 * 60 * 1000;
+        const foundSegments = [];
+      
+        for (let currentTime = startTime; currentTime < endTime; currentTime += segmentDurationMs) {
+          const segmentData = await fetchSegmentRecord(currentTime, cameraIp, db);
+      
+          if (segmentData?.fileName) {
+            foundSegments.push(segmentData);
+          }
+        }
+      
+        return foundSegments;
+      }
+
+      app.get('/videos/:cameraIp/:timespanFolder/:chunkName', async (req, res) => {
+        try {
+          const { cameraIp, timespanFolder, chunkName } = req.params;
+          const filePath = path.join(VIDEO_BASE_PATH, cameraIp, timespanFolder, chunkName);
+          console.log('get chunk', filePath);
+    
+          await fsPromise.access(filePath);
+          return res.sendFile(filePath);
+        } catch (err) {
+          return res.sendStatus(404);
+        }
+      });
 
     cron.schedule("00 12 * * *", async () => {
         try {
