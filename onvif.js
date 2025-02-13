@@ -494,6 +494,8 @@ app.use(cors());
       app.post('/create_manifest', async (req, res) => {
         try {
           const { timeStart, timeEnd, cameraIp, timespanId } = req.body;
+          console.log(timeStart, timeEnd, cameraIp, timespanId);
+          
 
           if (!timeStart || !timeEnd || !cameraIp || !timespanId) {
             return res.status(400).json({
