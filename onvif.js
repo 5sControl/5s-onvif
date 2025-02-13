@@ -621,7 +621,7 @@ app.use(cors());
         const segmentDurationMs = 2 * 60 * 1000;
         const foundSegments = [];
       
-        for (let currentTime = startTime; currentTime < endTime; currentTime += segmentDurationMs) {
+        for (let currentTime = startTime; currentTime <= endTime; currentTime += segmentDurationMs) {
           const segmentData = await fetchSegmentRecord(currentTime, cameraIp, db);
           console.log(segmentData, 'segmentData');
           
