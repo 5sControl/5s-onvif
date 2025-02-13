@@ -222,6 +222,8 @@ const fetchCameras = async (IP, cameras, db, io) => {
                 const snapshotUrlData = await captureSnapshot(username, password, id)
                 if (snapshotUrlData.url) {
                     const stream_url = `rtsp://${username}:${password}@${id}/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
+                    // const stream_url = `rtsp://${username}:${password}@${id}/cam/realmonitor?channel=1&subtype=0`
+
                     cameras[camera.id] = {
                         url: snapshotUrlData.url,
                         client: new DigestFetch(username, password),
