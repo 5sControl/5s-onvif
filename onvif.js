@@ -545,6 +545,8 @@ app.use(cors());
               if (initialOffset > 0) {
                 ss = initialOffset;
                 t = segDurationSec - initialOffset;
+                console.log(initialOffset, ss, t);
+                
               }
             }
             if (i === foundSegments.length - 1) {
@@ -626,6 +628,7 @@ app.use(cors());
             foundSegments.push(segmentData);
           }
         }
+      console.log(foundSegments, 'foundSegments');
       
         return foundSegments;
       }
