@@ -623,6 +623,10 @@ app.use(cors());
       
         for (let currentTime = startTime; currentTime < endTime; currentTime += segmentDurationMs) {
           const segmentData = await fetchSegmentRecord(currentTime, cameraIp, db);
+          console.log(segmentData, 'segmentData');
+          
+          console.log(currentTime, 'currentTime');
+          
       
           if (segmentData?.fileName) {
             foundSegments.push(segmentData);
