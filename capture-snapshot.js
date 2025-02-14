@@ -12,6 +12,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const captureSnapshot = async (username, password, cameraIp) => {
     try {
         const rtspUrl = `rtsp://${username}:${password}@${cameraIp}/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`;
+        // const rtspUrl = `rtsp://${username}:${password}@${cameraIp}/cam/realmonitor?channel=1&subtype=0`;
         const outputDir = path.join(process.env.IMAGES_DIR, cameraIp);
         const outputPath = path.join(outputDir, 'snapshot.jpg');
 
@@ -27,7 +28,6 @@ const captureSnapshot = async (username, password, cameraIp) => {
                     resolve({ url: snapshotUrl });
                 })
                 .on('error', (err, stdout, stderr) => {
-                    console.error(`FFmpeg error for camera ${cameraIp}:`, err.message);
                     reject({ error: err.message });
                 });
         });

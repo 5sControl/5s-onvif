@@ -17,9 +17,9 @@ if (!IP) {
 }
 
 const cameraErrors = {}
-setInterval(() => {
-    console.log(cameraErrors, 'cameraErrors')
-}, 10000)
+// setInterval(() => {
+//     console.log(cameraErrors, 'cameraErrors')
+// }, 10000)
 function arrayBufferToBuffer(arrayBuffer) {
     if (arrayBuffer?.byteLength == 0) {
         console.log(arrayBuffer?.byteLength, 'arrayBuffer.byteLength')
@@ -52,7 +52,6 @@ const screenshotUpdate = async (username, password, ip) => {
             return { success: false, error: snapshotUrlData.error };
         }
     } catch (e) {
-        console.error(`camera ip: ${ip}`, 'screenshotUpdate error:', e);
         if (!cameraErrors[ip]) {
             cameraErrors[ip] = 1;
         }
@@ -223,6 +222,8 @@ const fetchCameras = async (IP, cameras, db, io) => {
                 const snapshotUrlData = await captureSnapshot(username, password, id)
                 if (snapshotUrlData.url) {
                     const stream_url = `rtsp://${username}:${password}@${id}/Streaming/Channels/101?transportmode=unicast&profile=Profile_1`
+                    // const stream_url = `rtsp://${username}:${password}@${id}/cam/realmonitor?channel=1&subtype=0`
+
                     cameras[camera.id] = {
                         url: snapshotUrlData.url,
                         client: new DigestFetch(username, password),

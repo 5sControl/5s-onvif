@@ -15,7 +15,7 @@ const init = async () => {
         driver: sqlite3.Database,
       });
 
-    console.log('Connected to SQLite database.');
+    console.log('\x1b[32mConnected to SQLite database.\x1b[0m');
     await db.exec(`
         CREATE TABLE IF NOT EXISTS videos (
           id INTEGER PRIMARY KEY,
